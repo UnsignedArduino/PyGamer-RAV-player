@@ -6,26 +6,15 @@
 // Go to .pio\libdeps\adafruit_pygamer_m4\Adafruit GFX Library\Adafruit_SPITFT.h
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include <Adafruit_Arcada.h>
-#include "rav_player.h"
 
-void halt() {
-  Serial.println("Halting");
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);
-  while (true) {
-    ;
-  }
-}
+typedef unsigned int path_size_t;
 
-void setup() {
-  if (!RAVinit()) {
-    halt();
-  }
-}
+const path_size_t MAX_PATH_LEN = 255;
 
-void loop() {
-  char pathBuf[MAX_PATH_LEN + 1] = {};
-  if (!RAVPickFile(pathBuf, MAX_PATH_LEN + 1)) {
-    return;
-  }
-}
+extern Adafruit_Arcada arcada;
+
+bool RAVinit();
+
+bool RAVPickFile(char* result, path_size_t resultSize);
+
+void waitForRelease();
