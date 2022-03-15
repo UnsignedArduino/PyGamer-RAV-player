@@ -88,6 +88,11 @@ void RAVPlayFile(char* path) {
   const unsigned long titleStayTime = 30;
   unsigned long titleStayLeft = titleStayTime;
 
+  byte MAX_NOTICE_LEN = 16;
+  char notice[MAX_NOTICE_LEN + 1] = {};
+  const unsigned long noticeStayTime = 30;
+  unsigned long noticeStayLeft = 0;
+
   arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
   arcada.display->setTextSize(1);
   arcada.display->setTextWrap(false);
@@ -104,24 +109,43 @@ void RAVPlayFile(char* path) {
         break;
       }
       sampleIdx = 0;
-      arcada.display->startWrite();
-      if (jpeg.openRAM(RAVCodecJPEGImage, RAVCodecJPEGsize, JPEGDraw)) {
-        if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, 
-                        (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2,
-                        0)) {
-          Serial.println("Failed to decode JPEG");
-        }
-        jpeg.close();
+    }
+    // Draw current frame
+    arcada.display->startWrite();
+    if (jpeg.openRAM(RAVCodecJPEGImage, RAVCodecJPEGsize, JPEGDraw)) {
+      if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, 
+                      (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2,
+                      0)) {
+        Serial.println("Failed to decode JPEG");
       }
-      arcada.display->endWrite();
+      jpeg.close();
+    }
+    arcada.display->endWrite();
+    // Notice
+    if (noticeStayLeft > 0) {
+      noticeStayLeft --;
+      int16_t x;
+      int16_t y;
+      uint16_t w;
+      uint16_t h;
+      arcada.display->getTextBounds(notice, 0, 0, &x, &y, &w, &h);
+      arcada.display->setCursor((ARCADA_TFT_WIDTH / 2) - (w / 2), 
+                                (ARCADA_TFT_HEIGHT / 2) - (h / 2));
+      arcada.display->setTextColor(ARCADA_WHITE);
+      arcada.display->print(notice);
     }
     byte pressed = arcada.readButtons();
     if (pressed & ARCADA_BUTTONMASK_A) {
       paused = true;
+      strcpy(notice, "Pause");
+      noticeStayLeft = noticeStayTime;
     }
     if (pressed & ARCADA_BUTTONMASK_B) {
       paused = false;
+      strcpy(notice, "Resume");
+      noticeStayLeft = noticeStayTime;
     }
+    arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
     // Title
     if (titleX > 0) {
       titleX -= titleChangeX;
