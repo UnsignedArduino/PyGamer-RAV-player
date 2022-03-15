@@ -6,9 +6,16 @@
 // Go to .pio\libdeps\adafruit_pygamer_m4\Adafruit GFX Library\Adafruit_SPITFT.h
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include <Adafruit_Arcada.h>
+#include "rav_codec.h"
 #include "rav_player.h"
 
 Adafruit_Arcada arcada;
+
+bool volatile playSamples = false;
+unsigned long volatile sampleIdx = 0;
+
+byte volume = 16;
+const byte MAX_VOLUME = 128;
 
 bool RAVinit() {
   Serial.begin(9600);
@@ -31,13 +38,15 @@ bool RAVinit() {
     Serial.println("Found SD filesystem");
   }
 
+  analogWriteResolution(8);
+
   Serial.println("Init success");
   return true;
 }
 
 bool RAVPickFile(char* result, path_size_t resultSize) {
   Serial.println("Choosing file");
-  if (!arcada.chooseFile("/", result, resultSize, ".rav")) {
+  if (!arcada.chooseFile("/", result, resultSize, "rav")) {
     Serial.println("Failed to choose file");
     return false;
   }
@@ -45,6 +54,48 @@ bool RAVPickFile(char* result, path_size_t resultSize) {
   Serial.print("Choose file: ");
   Serial.println(result);
   return true;
+}
+
+void RAVPlayFile(char* path) {
+  Serial.print("Playing file: ");
+  Serial.println(path);
+
+  if (!RAVCodecEnter(path)) {
+    Serial.println("Failed to start codec");
+    return;
+  }
+
+  playSamples = true;
+  sampleIdx = 0;
+
+  arcada.timerCallback(SAMPLE_RATE, playNextSample);
+  arcada.enableSpeaker(true);
+
+  while (true) {
+    unsigned long start_time = millis();
+    if (!RAVCodecDecodeFrame()) {
+      Serial.println("Stopping decoder, EOF");
+      break;
+    }
+    sampleIdx = 0;
+    while (millis() - start_time < FRAME_LENGTH) {
+      ;
+    }
+  }
+
+  arcada.timerStop();
+  arcada.enableSpeaker(false);
+  RAVCodecExit();
+}
+
+void playNextSample() {
+  if (!playSamples || sampleIdx == SAMPLES_PER_FRAME) {
+    return;
+  }
+  byte sample = map(frameSamples[sampleIdx], 0, 255, 0, volume);
+  analogWrite(A0, sample);
+  analogWrite(A1, sample);
+  sampleIdx ++;
 }
 
 void waitForRelease() {
