@@ -102,6 +102,8 @@ void RAVPlayFile(char* path) {
 
 void playNextSample() {
   if (!playSamples || sampleIdx == SAMPLES_PER_FRAME) {
+    analogWrite(A0, 0);
+    analogWrite(A1, 0);
     return;
   }
   byte sample = map(RAVCodecFrameSamples[sampleIdx], 0, 255, 0, volume);
