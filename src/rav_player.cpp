@@ -70,9 +70,25 @@ void RAVPlayFile(char* path) {
   playSamples = true;
   sampleIdx = 0;
 
+  char title[MAX_PATH_LEN + 2] = {};
+  strcat(title, path);
+  strcat(title, " ");
+
+  int16_t x;
+  int16_t y;
+  uint16_t w;
+  uint16_t h;
+  arcada.display->getTextBounds(title, 0, 0, &x, &y, &w, &h);
+
+  const byte titleChangeX = 2;
+  long titleX = 0;
+  long titleResetX = 0 - w;
+  const unsigned long titleStayTime = 30;
+  unsigned long titleStayLeft = titleStayTime;
+
   arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
   arcada.display->setTextSize(1);
-  arcada.display->setTextWrap(true);
+  arcada.display->setTextWrap(false);
 
   arcada.timerCallback(SAMPLE_RATE, playNextSample);
   arcada.enableSpeaker(true);
@@ -94,6 +110,18 @@ void RAVPlayFile(char* path) {
       jpeg.close();
     }
     arcada.display->endWrite();
+    if (titleX > 0) {
+      titleX -= titleChangeX;
+    } else if (titleStayLeft > 0) {
+      titleStayLeft --;
+    } else if (titleX > titleResetX) {
+      titleX -= titleChangeX;
+    } else {
+      titleX = ARCADA_TFT_WIDTH;
+      titleStayLeft = titleStayTime;
+    }
+    arcada.display->setCursor(titleX, 0);
+    arcada.display->print(title);
     arcada.display->setCursor(0, ARCADA_TFT_HEIGHT - 8);
     const byte timeBufSize = 12;
     char timeBuf[timeBufSize] = {};
@@ -140,7 +168,7 @@ void formatFrameAsTime(unsigned long f, char* result, byte resultSize) {
   if (h == 0) {
     snprintf(result, resultSize, "%02d:%02d", m, s);
   } else {
-    snprintf(result, resultSize, "%02ld:%02d:%02d", h, m, s);
+    snprintf(result, resultSize, "%02d:%02d:%02d", h, m, s);
   }
 }
 
