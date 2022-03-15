@@ -6,10 +6,12 @@
 // Go to .pio\libdeps\adafruit_pygamer_m4\Adafruit GFX Library\Adafruit_SPITFT.h
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include <Adafruit_Arcada.h>
+#include <JPEGDEC.h>
 #include "rav_codec.h"
 #include "rav_player.h"
 
 Adafruit_Arcada arcada;
+JPEGDEC jpeg;
 
 bool volatile playSamples = false;
 unsigned long volatile sampleIdx = 0;
@@ -78,6 +80,16 @@ void RAVPlayFile(char* path) {
       break;
     }
     sampleIdx = 0;
+    arcada.display->startWrite();
+    if (jpeg.openRAM(RAVCodecJPEGImage, RAVCodecJPEGsize, JPEGDraw)) {
+      if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, 
+                       (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2,
+                       0)) {
+        Serial.println("Failed to decode JPEG");
+      }
+      jpeg.close();
+    }
+    arcada.display->endWrite();
     while (millis() - start_time < FRAME_LENGTH) {
       ;
     }
@@ -96,6 +108,13 @@ void playNextSample() {
   analogWrite(A0, sample);
   analogWrite(A1, sample);
   sampleIdx ++;
+}
+
+int JPEGDraw(JPEGDRAW *draw) {
+  arcada.display->dmaWait();
+  arcada.display->setAddrWindow(draw->x, draw->y, draw->iWidth, draw->iHeight);
+  arcada.display->writePixels(draw->pPixels, draw->iWidth * draw->iHeight, true, false);
+  return 1;
 }
 
 void waitForRelease() {

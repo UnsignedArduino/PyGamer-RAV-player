@@ -22,6 +22,8 @@ const unsigned long FRAME_LENGTH = 1000 / VIDEO_FPS;
 
 const unsigned long SAMPLES_PER_FRAME = SAMPLE_RATE / VIDEO_FPS;
 
+const unsigned long MAX_JPEG_SIZE = 32768;
+
 union ULongAsBytes {
   byte as_array[sizeof(unsigned long)];
   unsigned long as_ulong;
@@ -31,6 +33,8 @@ extern char* RAVCodecPath;
 extern File RAVCodecFile;
 extern unsigned long RAVCodecCurrFrame;
 extern sample_t RAVCodecFrameSamples[SAMPLES_PER_FRAME];
+extern byte RAVCodecJPEGImage[MAX_JPEG_SIZE];
+extern unsigned long RAVCodecJPEGsize;
 
 bool RAVCodecEnter(char* path);
 bool RAVCodecDecodeFrame();

@@ -13,11 +13,15 @@ char* RAVCodecPath;
 File RAVCodecFile;
 unsigned long RAVCodecCurrFrame;
 sample_t RAVCodecFrameSamples[SAMPLES_PER_FRAME];
+byte RAVCodecJPEGImage[MAX_JPEG_SIZE];
+unsigned long RAVCodecJPEGsize;
 
 bool RAVCodecEnter(char* path) {
   RAVCodecPath = path;
   RAVCodecCurrFrame = 0;
   memset(RAVCodecFrameSamples, 0, SAMPLES_PER_FRAME * sizeof(sample_t));
+  unsigned long RAVCodecJPEGsize = 0;
+  memset(RAVCodecJPEGImage, 0, MAX_JPEG_SIZE * sizeof(byte));
   Serial.print("Opening file ");
   Serial.println(RAVCodecFile);
   RAVCodecFile = arcada.open(RAVCodecPath);
@@ -56,13 +60,13 @@ bool RAVCodecDecodeFrame() {
   // Audio
   _RAVCodecReadAudio();
   // Video frame length
-  unsigned long jpegLen = _RAVCodecReadULong();
+  RAVCodecJPEGsize = _RAVCodecReadULong();
   #if defined(DEBUG_FRAME)
   Serial.print("JPEG len: ");
-  Serial.println(jpegLen);
+  Serial.println(RAVCodecJPEGsize);
   #endif
   // Video
-  _RAVCodecReadVideo(jpegLen);
+  _RAVCodecReadVideo(RAVCodecJPEGsize);
   // Frame length
   #if defined(DEBUG_FRAME)
   Serial.print("Frame len ");
@@ -82,8 +86,16 @@ void _RAVCodecReadAudio() {
 }
 
 void _RAVCodecReadVideo(unsigned long JPEGlen) {
-  // For now we don't decode audio
-  RAVCodecFile.seekCur(JPEGlen);
+  memset(RAVCodecJPEGImage, 0, MAX_JPEG_SIZE * sizeof(byte));
+  if (JPEGlen > MAX_JPEG_SIZE) {
+    Serial.print("JPEG size ");
+    Serial.print(JPEGlen);
+    Serial.println(" too big!");
+    return;
+  }
+  // // For now we don't decode audio
+  // RAVCodecFile.seekCur(JPEGlen);
+  RAVCodecFile.read(RAVCodecJPEGImage, JPEGlen);
 }
 
 unsigned long _RAVCodecReadULong() {

@@ -6,12 +6,14 @@
 // Go to .pio\libdeps\adafruit_pygamer_m4\Adafruit GFX Library\Adafruit_SPITFT.h
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include <Adafruit_Arcada.h>
+#include <JPEGDEC.h>
 
 typedef unsigned int path_size_t;
 
 const path_size_t MAX_PATH_LEN = 255;
 
 extern Adafruit_Arcada arcada;
+extern JPEGDEC jpeg;
 
 extern volatile bool playSamples;
 extern volatile unsigned long sampleIdx;
@@ -21,4 +23,5 @@ bool RAVPickFile(char* result, path_size_t resultSize);
 void RAVPlayFile(char* path);
 
 void playNextSample();
+int JPEGDraw(JPEGDRAW *draw);
 void waitForRelease();
