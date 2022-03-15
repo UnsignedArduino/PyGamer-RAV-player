@@ -9,19 +9,19 @@
 #include "rav_player.h"
 #include "rav_codec.h"
 
-char* _path;
-File _file;
-unsigned long _currFrame;
-sample_t frameSamples[SAMPLES_PER_FRAME];
+char* RAVCodecPath;
+File RAVCodecFile;
+unsigned long RAVCodecCurrFrame;
+sample_t RAVCodecFrameSamples[SAMPLES_PER_FRAME];
 
 bool RAVCodecEnter(char* path) {
-  _path = path;
-  _currFrame = 0;
-  memset(frameSamples, 0, SAMPLES_PER_FRAME * sizeof(sample_t));
+  RAVCodecPath = path;
+  RAVCodecCurrFrame = 0;
+  memset(RAVCodecFrameSamples, 0, SAMPLES_PER_FRAME * sizeof(sample_t));
   Serial.print("Opening file ");
-  Serial.println(_file);
-  _file = arcada.open(_path);
-  if (!_file) {
+  Serial.println(RAVCodecFile);
+  RAVCodecFile = arcada.open(RAVCodecPath);
+  if (!RAVCodecFile) {
     Serial.println("Failed to open file");
     return false;
   }
@@ -30,68 +30,68 @@ bool RAVCodecEnter(char* path) {
 }
 
 bool RAVCodecDecodeFrame() {
-  if (atEOF()) {
+  if (_RAVCodecAtEOF()) {
     return false;
   }
   // Current frame number
-  _currFrame = _readULong();
+  RAVCodecCurrFrame = _RAVCodecReadULong();
   #if defined(DEBUG_FRAME)
   Serial.print("Frame #");
-  Serial.println(_currFrame);
+  Serial.println(RAVCodecCurrFrame);
   #endif
   // Frame length
   #if defined(DEBUG_FRAME)
   Serial.print("Frame len: ");
-  Serial.println(_readULong());
+  Serial.println(_RAVCodecReadULong());
   #else
-  _readULong();
+  _RAVCodecReadULong();
   #endif
   // Audio length
   #if defined(DEBUG_FRAME)
   Serial.print("Audio len: ");
-  Serial.println(_readULong());
+  Serial.println(_RAVCodecReadULong());
   #else
-  _readULong();
+  _RAVCodecReadULong();
   #endif
   // Audio
-  _readAudio();
+  _RAVCodecReadAudio();
   // Video frame length
-  unsigned long jpegLen = _readULong();
+  unsigned long jpegLen = _RAVCodecReadULong();
   #if defined(DEBUG_FRAME)
   Serial.print("JPEG len: ");
   Serial.println(jpegLen);
   #endif
   // Video
-  _readVideo(jpegLen);
+  _RAVCodecReadVideo(jpegLen);
   // Frame length
   #if defined(DEBUG_FRAME)
   Serial.print("Frame len ");
-  Serial.println(_readULong());
+  Serial.println(_RAVCodecReadULong());
   #else
-  _readULong();
+  _RAVCodecReadULong();
   #endif
   return true;
 }
 
 void RAVCodecExit() {
-  _file.close();
+  RAVCodecFile.close();
 }
 
-void _readAudio() {
-  _file.read(frameSamples, SAMPLES_PER_FRAME);
+void _RAVCodecReadAudio() {
+  RAVCodecFile.read(RAVCodecFrameSamples, SAMPLES_PER_FRAME);
 }
 
-void _readVideo(unsigned long JPEGlen) {
+void _RAVCodecReadVideo(unsigned long JPEGlen) {
   // For now we don't decode audio
-  _file.seekCur(JPEGlen);
+  RAVCodecFile.seekCur(JPEGlen);
 }
 
-unsigned long _readULong() {
+unsigned long _RAVCodecReadULong() {
   ULongAsBytes ulb;
-  _file.read(ulb.as_array, sizeof(unsigned long));
+  RAVCodecFile.read(ulb.as_array, sizeof(unsigned long));
   return ulb.as_ulong;
 }
 
-bool atEOF() {
-  return _file.position() >= _file.size() - 1;
+bool _RAVCodecAtEOF() {
+  return RAVCodecFile.position() >= RAVCodecFile.size() - 1;
 }

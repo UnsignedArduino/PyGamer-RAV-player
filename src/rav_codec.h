@@ -27,17 +27,17 @@ union ULongAsBytes {
   unsigned long as_ulong;
 };
 
-extern char* _path;
-extern File _file;
-extern unsigned long _currFrame;
-extern sample_t frameSamples[SAMPLES_PER_FRAME];
+extern char* RAVCodecPath;
+extern File RAVCodecFile;
+extern unsigned long RAVCodecCurrFrame;
+extern sample_t RAVCodecFrameSamples[SAMPLES_PER_FRAME];
 
 bool RAVCodecEnter(char* path);
 bool RAVCodecDecodeFrame();
 void RAVCodecExit();
 
-void _readAudio();
-void _readVideo(unsigned long JPEGlen);
+void _RAVCodecReadAudio();
+void _RAVCodecReadVideo(unsigned long JPEGlen);
 
-unsigned long _readULong();
-bool atEOF();
+unsigned long _RAVCodecReadULong();
+bool _RAVCodecAtEOF();

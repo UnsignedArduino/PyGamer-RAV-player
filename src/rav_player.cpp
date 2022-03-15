@@ -92,7 +92,7 @@ void playNextSample() {
   if (!playSamples || sampleIdx == SAMPLES_PER_FRAME) {
     return;
   }
-  byte sample = map(frameSamples[sampleIdx], 0, 255, 0, volume);
+  byte sample = map(RAVCodecFrameSamples[sampleIdx], 0, 255, 0, volume);
   analogWrite(A0, sample);
   analogWrite(A1, sample);
   sampleIdx ++;
