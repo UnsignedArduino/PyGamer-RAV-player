@@ -70,6 +70,10 @@ void RAVPlayFile(char* path) {
   playSamples = true;
   sampleIdx = 0;
 
+  arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
+  arcada.display->setTextSize(1);
+  arcada.display->setTextWrap(true);
+
   arcada.timerCallback(SAMPLE_RATE, playNextSample);
   arcada.enableSpeaker(true);
 
@@ -90,6 +94,14 @@ void RAVPlayFile(char* path) {
       jpeg.close();
     }
     arcada.display->endWrite();
+    arcada.display->setCursor(0, ARCADA_TFT_HEIGHT - 8);
+    const byte timeBufSize = 12;
+    char timeBuf[timeBufSize] = {};
+    formatFrameAsTime(RAVCodecCurrFrame, timeBuf, timeBufSize);
+    arcada.display->print(timeBuf);
+    arcada.display->print("/");
+    formatFrameAsTime(RAVCodecMaxFrame, timeBuf, timeBufSize);
+    arcada.display->print(timeBuf);
     while (millis() - start_time < FRAME_LENGTH) {
       ;
     }
@@ -117,6 +129,19 @@ int JPEGDraw(JPEGDRAW *draw) {
   arcada.display->setAddrWindow(draw->x, draw->y, draw->iWidth, draw->iHeight);
   arcada.display->writePixels(draw->pPixels, draw->iWidth * draw->iHeight, true, false);
   return 1;
+}
+
+void formatFrameAsTime(unsigned long f, char* result, byte resultSize) {
+  unsigned long secs = f / VIDEO_FPS;
+  unsigned int h = secs / 3600;
+  secs = secs % 3600;
+  unsigned int m = secs / 60;
+  unsigned int s = secs % 60;
+  if (h == 0) {
+    snprintf(result, resultSize, "%02d:%02d", m, s);
+  } else {
+    snprintf(result, resultSize, "%02ld:%02d:%02d", h, m, s);
+  }
 }
 
 void waitForRelease() {

@@ -24,4 +24,5 @@ void RAVPlayFile(char* path);
 
 void playNextSample();
 int JPEGDraw(JPEGDRAW *draw);
+void formatFrameAsTime(unsigned long f, char* result, byte resultSize);
 void waitForRelease();
