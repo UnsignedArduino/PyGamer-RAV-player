@@ -70,6 +70,8 @@ void RAVPlayFile(char* path) {
   playSamples = true;
   sampleIdx = 0;
 
+  bool paused = false;
+
   char title[MAX_PATH_LEN + 2] = {};
   strcat(title, path);
   strcat(title, " ");
@@ -89,27 +91,38 @@ void RAVPlayFile(char* path) {
   arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
   arcada.display->setTextSize(1);
   arcada.display->setTextWrap(false);
+  arcada.display->cp437(true);
 
   arcada.timerCallback(SAMPLE_RATE, playNextSample);
   arcada.enableSpeaker(true);
 
   while (true) {
     unsigned long start_time = millis();
-    if (!RAVCodecDecodeFrame()) {
-      Serial.println("Stopping decoder, EOF");
-      break;
-    }
-    sampleIdx = 0;
-    arcada.display->startWrite();
-    if (jpeg.openRAM(RAVCodecJPEGImage, RAVCodecJPEGsize, JPEGDraw)) {
-      if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, 
-                       (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2,
-                       0)) {
-        Serial.println("Failed to decode JPEG");
+    if (!paused) {
+      if (!RAVCodecDecodeFrame()) {
+        Serial.println("Stopping decoder, EOF");
+        break;
       }
-      jpeg.close();
+      sampleIdx = 0;
+      arcada.display->startWrite();
+      if (jpeg.openRAM(RAVCodecJPEGImage, RAVCodecJPEGsize, JPEGDraw)) {
+        if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, 
+                        (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2,
+                        0)) {
+          Serial.println("Failed to decode JPEG");
+        }
+        jpeg.close();
+      }
+      arcada.display->endWrite();
     }
-    arcada.display->endWrite();
+    byte pressed = arcada.readButtons();
+    if (pressed & ARCADA_BUTTONMASK_A) {
+      paused = true;
+    }
+    if (pressed & ARCADA_BUTTONMASK_B) {
+      paused = false;
+    }
+    // Title
     if (titleX > 0) {
       titleX -= titleChangeX;
     } else if (titleStayLeft > 0) {
@@ -122,7 +135,17 @@ void RAVPlayFile(char* path) {
     }
     arcada.display->setCursor(titleX, 0);
     arcada.display->print(title);
+    // Bottom row
+    // Play/paused
     arcada.display->setCursor(0, ARCADA_TFT_HEIGHT - 8);
+    arcada.display->print(" ");
+    if (paused) {
+      arcada.display->write(0xBA); // "║"
+    } else {
+      arcada.display->write(0x10); // "►"
+    }
+    arcada.display->print(" ");
+    // Time
     const byte timeBufSize = 12;
     char timeBuf[timeBufSize] = {};
     formatFrameAsTime(RAVCodecCurrFrame, timeBuf, timeBufSize);
