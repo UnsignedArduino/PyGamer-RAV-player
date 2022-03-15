@@ -13,7 +13,7 @@
 
 typedef byte sample_t;
 
-const unsigned long SAMPLE_RATE = 8000;
+const unsigned long SAMPLE_RATE = 16000;
 const byte SAMPLE_SIZE = 1;
 const byte CHANNEL_COUNT = 1;
 

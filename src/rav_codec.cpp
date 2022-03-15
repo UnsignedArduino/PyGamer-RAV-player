@@ -20,7 +20,7 @@ bool RAVCodecEnter(char* path) {
   RAVCodecPath = path;
   RAVCodecCurrFrame = 0;
   memset(RAVCodecFrameSamples, 0, SAMPLES_PER_FRAME * sizeof(sample_t));
-  unsigned long RAVCodecJPEGsize = 0;
+  RAVCodecJPEGsize = 0;
   memset(RAVCodecJPEGImage, 0, MAX_JPEG_SIZE * sizeof(byte));
   Serial.print("Opening file ");
   Serial.println(RAVCodecFile);
