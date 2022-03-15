@@ -16,7 +16,7 @@ JPEGDEC jpeg;
 bool volatile playSamples = false;
 unsigned long volatile sampleIdx = 0;
 
-byte volume = 16;
+byte volume = 32;
 const byte MAX_VOLUME = 128;
 
 bool RAVinit() {
@@ -143,6 +143,16 @@ void RAVPlayFile(char* path) {
     if (pressed & ARCADA_BUTTONMASK_B) {
       paused = false;
       strcpy(notice, "Resume");
+      noticeStayLeft = noticeStayTime;
+    }
+    if (pressed & ARCADA_BUTTONMASK_UP) {
+      volume = min(volume + 8, MAX_VOLUME);
+      snprintf(notice, MAX_NOTICE_LEN, "%u%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
+      noticeStayLeft = noticeStayTime;
+    }
+    if (pressed & ARCADA_BUTTONMASK_DOWN) {
+      volume = max(volume - 8, 0);
+      snprintf(notice, MAX_NOTICE_LEN, "%u%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
       noticeStayLeft = noticeStayTime;
     }
     arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
