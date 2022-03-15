@@ -28,4 +28,5 @@ void loop() {
   if (!RAVPickFile(pathBuf, MAX_PATH_LEN + 1)) {
     return;
   }
+  RAVPlayFile(pathBuf);
 }

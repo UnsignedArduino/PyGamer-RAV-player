@@ -13,8 +13,12 @@ const path_size_t MAX_PATH_LEN = 255;
 
 extern Adafruit_Arcada arcada;
 
+extern volatile bool playSamples;
+extern volatile unsigned long sampleIdx;
+
 bool RAVinit();
-
 bool RAVPickFile(char* result, path_size_t resultSize);
+void RAVPlayFile(char* path);
 
+void playNextSample();
 void waitForRelease();
