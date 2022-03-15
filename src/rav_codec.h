@@ -32,6 +32,7 @@ union ULongAsBytes {
 extern char* RAVCodecPath;
 extern File RAVCodecFile;
 extern unsigned long RAVCodecCurrFrame;
+extern unsigned long RAVCodecMaxFrame;
 extern sample_t RAVCodecFrameSamples[SAMPLES_PER_FRAME];
 extern byte RAVCodecJPEGImage[MAX_JPEG_SIZE];
 extern unsigned long RAVCodecJPEGsize;

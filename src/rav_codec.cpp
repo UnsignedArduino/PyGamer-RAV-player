@@ -12,6 +12,7 @@
 char* RAVCodecPath;
 File RAVCodecFile;
 unsigned long RAVCodecCurrFrame;
+unsigned long RAVCodecMaxFrame;
 sample_t RAVCodecFrameSamples[SAMPLES_PER_FRAME];
 byte RAVCodecJPEGImage[MAX_JPEG_SIZE];
 unsigned long RAVCodecJPEGsize;
@@ -19,16 +20,32 @@ unsigned long RAVCodecJPEGsize;
 bool RAVCodecEnter(char* path) {
   RAVCodecPath = path;
   RAVCodecCurrFrame = 0;
+  RAVCodecMaxFrame = 0;
   memset(RAVCodecFrameSamples, 0, SAMPLES_PER_FRAME * sizeof(sample_t));
   RAVCodecJPEGsize = 0;
   memset(RAVCodecJPEGImage, 0, MAX_JPEG_SIZE * sizeof(byte));
   Serial.print("Opening file ");
   Serial.println(RAVCodecFile);
   RAVCodecFile = arcada.open(RAVCodecPath);
+  Serial.println();
   if (!RAVCodecFile) {
     Serial.println("Failed to open file");
     return false;
   }
+  RAVCodecFile.seekEnd();
+  RAVCodecFile.seekCur(-4);
+  unsigned long frameLen = _RAVCodecReadULong();
+  Serial.print("Last frame length: ");
+  Serial.println(frameLen);
+  // Seek negative (backwards)
+  // -4 for the last frame length, frame length itself, 
+  // and -8 to get to the beginning of the frame
+  // Then we can read the frame number and get the last frame
+  RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);
+  RAVCodecMaxFrame = _RAVCodecReadULong();
+  RAVCodecFile.seek(0);
+  Serial.print("Last frame: ");
+  Serial.println(RAVCodecMaxFrame);
   Serial.println("Success init codec");
   return true;
 }
