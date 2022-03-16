@@ -90,6 +90,7 @@ void RAVPlayFile(char* path) {
   long titleResetX = 0 - w;
   const unsigned long titleStayTime = 30;
   unsigned long titleStayLeft = titleStayTime;
+  const bool scrollTitle = w > ARCADA_TFT_WIDTH;
 
   byte MAX_NOTICE_LEN = 16;
   char notice[MAX_NOTICE_LEN + 1] = {};
@@ -186,15 +187,17 @@ void RAVPlayFile(char* path) {
     }
     arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
     // Title
-    if (titleX > 0) {
-      titleX -= titleChangeX;
-    } else if (titleStayLeft > 0) {
-      titleStayLeft --;
-    } else if (titleX > titleResetX) {
-      titleX -= titleChangeX;
-    } else {
-      titleX = ARCADA_TFT_WIDTH;
-      titleStayLeft = titleStayTime;
+    if (scrollTitle) {
+      if (titleX > 0) {
+        titleX -= titleChangeX;
+      } else if (titleStayLeft > 0) {
+        titleStayLeft --;
+      } else if (titleX > titleResetX) {
+        titleX -= titleChangeX;
+      } else {
+        titleX = ARCADA_TFT_WIDTH;
+        titleStayLeft = titleStayTime;
+      }
     }
     arcada.display->setCursor(titleX, 0);
     arcada.display->print(title);
