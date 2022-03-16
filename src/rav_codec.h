@@ -39,6 +39,7 @@ extern unsigned long RAVCodecJPEGsize;
 
 bool RAVCodecEnter(char* path);
 bool RAVCodecDecodeFrame();
+void RAVCodecSeekFramesCur(long changeBy);
 void RAVCodecExit();
 
 void _RAVCodecReadAudio();

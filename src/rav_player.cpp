@@ -104,11 +104,9 @@ void RAVPlayFile(char* path) {
   while (true) {
     unsigned long start_time = millis();
     if (!paused) {
-      if (!RAVCodecDecodeFrame()) {
-        Serial.println("Stopping decoder, EOF");
-        break;
+      if (RAVCodecDecodeFrame()) {
+        sampleIdx = 0;
       }
-      sampleIdx = 0;
     }
     // Draw current frame
     arcada.display->startWrite();
@@ -147,12 +145,28 @@ void RAVPlayFile(char* path) {
     }
     if (pressed & ARCADA_BUTTONMASK_UP) {
       volume = min(volume + 8, MAX_VOLUME);
-      snprintf(notice, MAX_NOTICE_LEN, "%u%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
+      snprintf(notice, MAX_NOTICE_LEN, "%l%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
       noticeStayLeft = noticeStayTime;
     }
     if (pressed & ARCADA_BUTTONMASK_DOWN) {
       volume = max(volume - 8, 0);
-      snprintf(notice, MAX_NOTICE_LEN, "%u%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
+      snprintf(notice, MAX_NOTICE_LEN, "%l%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
+      noticeStayLeft = noticeStayTime;
+    }
+    if (pressed & ARCADA_BUTTONMASK_LEFT) {
+      RAVCodecSeekFramesCur(-FRAMES_TO_SEEK);
+      if (paused) {
+        RAVCodecDecodeFrame();
+      }
+      snprintf(notice, MAX_NOTICE_LEN, "-%u seconds", SECS_TO_SEEK);
+      noticeStayLeft = noticeStayTime;
+    }
+    if (pressed & ARCADA_BUTTONMASK_RIGHT) {
+      RAVCodecSeekFramesCur(FRAMES_TO_SEEK);
+      if (paused) {
+        RAVCodecDecodeFrame();
+      }
+      snprintf(notice, MAX_NOTICE_LEN, "+%u seconds", SECS_TO_SEEK);
       noticeStayLeft = noticeStayTime;
     }
     arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);

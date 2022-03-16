@@ -7,6 +7,7 @@
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include <Adafruit_Arcada.h>
 #include <JPEGDEC.h>
+#include "rav_codec.h"
 
 typedef unsigned int path_size_t;
 
@@ -17,6 +18,9 @@ extern JPEGDEC jpeg;
 
 extern volatile bool playSamples;
 extern volatile unsigned long sampleIdx;
+
+const byte SECS_TO_SEEK = 5;
+const unsigned long FRAMES_TO_SEEK = VIDEO_FPS * SECS_TO_SEEK;
 
 bool RAVinit();
 bool RAVPickFile(char* result, path_size_t resultSize);
