@@ -7,6 +7,7 @@
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include <Adafruit_Arcada.h>
 #include <JPEGDEC.h>
+#include "pygamer_arcada.h"
 #include "rav_codec.h"
 #include "rav_player.h"
 
@@ -54,7 +55,7 @@ bool RAVPickFile(char* result, path_size_t resultSize) {
     Serial.println("Failed to choose file");
     return false;
   }
-  waitForRelease();
+  waitForRelease(arcada);
   Serial.print("Choose file: ");
   Serial.println(result);
   return true;
@@ -91,6 +92,14 @@ void RAVPlayFile(char* path) {
   const unsigned long titleStayTime = 30;
   unsigned long titleStayLeft = titleStayTime;
   const bool scrollTitle = w > ARCADA_TFT_WIDTH;
+
+  byte battMaxPercentLen = 8;
+  char battMaxPercent[battMaxPercentLen] = {};
+  snprintf(battMaxPercent, battMaxPercentLen, "%u%%", battPercent(arcada));
+  const unsigned long battUpdateFramesTime = 50;
+  unsigned long battUpdateFramesLeft = battUpdateFramesTime;
+  Serial.print("Battery: ");
+  Serial.println(battMaxPercent);
 
   byte MAX_NOTICE_LEN = 16;
   char notice[MAX_NOTICE_LEN + 1] = {};
@@ -145,22 +154,26 @@ void RAVPlayFile(char* path) {
         paused = true;
         strcpy(notice, "Pause");
         noticeStayLeft = noticeStayTime;
+        Serial.println(notice);
       }
       if (paused && pressed & ARCADA_BUTTONMASK_B) {
         paused = false;
         strcpy(notice, "Resume");
         noticeStayLeft = noticeStayTime;
-    }
+        Serial.println(notice);
       }
+    }
     if (pressed & ARCADA_BUTTONMASK_UP) {
       volume = min(volume + 8, MAX_VOLUME);
       snprintf(notice, MAX_NOTICE_LEN, "%ld%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
       noticeStayLeft = noticeStayTime;
+      Serial.println(notice);
     }
     if (pressed & ARCADA_BUTTONMASK_DOWN) {
       volume = max(volume - 8, 0);
       snprintf(notice, MAX_NOTICE_LEN, "%ld%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
       noticeStayLeft = noticeStayTime;
+      Serial.println(notice);
     }
     if (pressed & ARCADA_BUTTONMASK_LEFT) {
       RAVCodecSeekFramesCur(-FRAMES_TO_SEEK);
@@ -169,6 +182,7 @@ void RAVPlayFile(char* path) {
       }
       snprintf(notice, MAX_NOTICE_LEN, "-%u seconds", SECS_TO_SEEK);
       noticeStayLeft = noticeStayTime;
+      Serial.println(notice);
     }
     if (!EOFed && pressed & ARCADA_BUTTONMASK_RIGHT) {
       RAVCodecSeekFramesCur(FRAMES_TO_SEEK);
@@ -177,6 +191,7 @@ void RAVPlayFile(char* path) {
       }
       snprintf(notice, MAX_NOTICE_LEN, "+%u seconds", SECS_TO_SEEK);
       noticeStayLeft = noticeStayTime;
+      Serial.println(notice);
     }
     if (pressed & ARCADA_BUTTONMASK_SELECT || pressed & ARCADA_BUTTONMASK_START) {
       byte selected = arcada.menu(playerMenu, PLAYER_MENU_LEN, ARCADA_WHITE, ARCADA_BLACK, true);
@@ -221,6 +236,21 @@ void RAVPlayFile(char* path) {
     arcada.display->print("/");
     formatFrameAsTime(RAVCodecMaxFrame, timeBuf, timeBufSize);
     arcada.display->print(timeBuf);
+    if (battUpdateFramesLeft == 0) {
+      battUpdateFramesLeft = battUpdateFramesTime;
+      snprintf(battMaxPercent, battMaxPercentLen, "  %u%%", battPercent(arcada));
+      Serial.print("Battery: ");
+      Serial.println(battMaxPercent);
+    }
+    battUpdateFramesLeft --;
+    int16_t x;
+    int16_t y;
+    uint16_t w;
+    uint16_t h;
+    arcada.display->getTextBounds(battMaxPercent, 0, 0, &x, &y, &w, &h);
+    const unsigned int battX = ARCADA_TFT_WIDTH - w;
+    arcada.display->setCursor(battX, ARCADA_TFT_HEIGHT - 8);
+    arcada.display->print(battMaxPercent);
     while (millis() - start_time < FRAME_LENGTH) {
       ;
     }
@@ -260,11 +290,5 @@ void formatFrameAsTime(unsigned long f, char* result, byte resultSize) {
     snprintf(result, resultSize, "%02d:%02d", m, s);
   } else {
     snprintf(result, resultSize, "%02d:%02d:%02d", h, m, s);
-  }
-}
-
-void waitForRelease() {
-  while (arcada.readButtons() != 0) {
-    ;
   }
 }
