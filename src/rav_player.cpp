@@ -140,12 +140,12 @@ void RAVPlayFile(char* path) {
     }
     byte pressed = arcada.readButtons();
     if (!EOFed) {
-      if (pressed & ARCADA_BUTTONMASK_A) {
+      if (!paused && pressed & ARCADA_BUTTONMASK_A) {
         paused = true;
         strcpy(notice, "Pause");
         noticeStayLeft = noticeStayTime;
       }
-      if (pressed & ARCADA_BUTTONMASK_B) {
+      if (paused && pressed & ARCADA_BUTTONMASK_B) {
         paused = false;
         strcpy(notice, "Resume");
         noticeStayLeft = noticeStayTime;
@@ -169,15 +169,13 @@ void RAVPlayFile(char* path) {
       snprintf(notice, MAX_NOTICE_LEN, "-%u seconds", SECS_TO_SEEK);
       noticeStayLeft = noticeStayTime;
     }
-    if (!EOFed) {
-      if (pressed & ARCADA_BUTTONMASK_RIGHT) {
-        RAVCodecSeekFramesCur(FRAMES_TO_SEEK);
-        if (paused) {
-          RAVCodecDecodeFrame();
-        }
-        snprintf(notice, MAX_NOTICE_LEN, "+%u seconds", SECS_TO_SEEK);
-        noticeStayLeft = noticeStayTime;
+    if (!EOFed && pressed & ARCADA_BUTTONMASK_RIGHT) {
+      RAVCodecSeekFramesCur(FRAMES_TO_SEEK);
+      if (paused) {
+        RAVCodecDecodeFrame();
       }
+      snprintf(notice, MAX_NOTICE_LEN, "+%u seconds", SECS_TO_SEEK);
+      noticeStayLeft = noticeStayTime;
     }
     if (pressed & ARCADA_BUTTONMASK_SELECT || pressed & ARCADA_BUTTONMASK_START) {
       byte selected = arcada.menu(playerMenu, PLAYER_MENU_LEN, ARCADA_WHITE, ARCADA_BLACK, true);
