@@ -19,6 +19,8 @@ unsigned long volatile sampleIdx = 0;
 byte volume = 32;
 const byte MAX_VOLUME = 128;
 
+const char* playerMenu[PLAYER_MENU_LEN] = {"Cancel", "Exit"};
+
 bool RAVinit() {
   Serial.begin(9600);
   Serial.println("RAV player init");
@@ -147,8 +149,8 @@ void RAVPlayFile(char* path) {
         paused = false;
         strcpy(notice, "Resume");
         noticeStayLeft = noticeStayTime;
-      }
     }
+      }
     if (pressed & ARCADA_BUTTONMASK_UP) {
       volume = min(volume + 8, MAX_VOLUME);
       snprintf(notice, MAX_NOTICE_LEN, "%d%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
@@ -175,6 +177,13 @@ void RAVPlayFile(char* path) {
         }
         snprintf(notice, MAX_NOTICE_LEN, "+%u seconds", SECS_TO_SEEK);
         noticeStayLeft = noticeStayTime;
+      }
+    }
+    if (pressed & ARCADA_BUTTONMASK_SELECT || pressed & ARCADA_BUTTONMASK_START) {
+      byte selected = arcada.menu(playerMenu, PLAYER_MENU_LEN, ARCADA_WHITE, ARCADA_BLACK, true);
+      if (selected == 1) {
+        Serial.println("User exit");
+        break;
       }
     }
     arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
