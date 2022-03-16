@@ -71,6 +71,7 @@ void RAVPlayFile(char* path) {
   sampleIdx = 0;
 
   bool paused = false;
+  bool EOFed = false;
 
   char title[MAX_PATH_LEN + 2] = {};
   strcat(title, path);
@@ -106,6 +107,9 @@ void RAVPlayFile(char* path) {
     if (!paused) {
       if (RAVCodecDecodeFrame()) {
         sampleIdx = 0;
+        EOFed = false;
+      } else {
+        EOFed = true;
       }
     }
     // Draw current frame
@@ -133,24 +137,26 @@ void RAVPlayFile(char* path) {
       arcada.display->print(notice);
     }
     byte pressed = arcada.readButtons();
-    if (pressed & ARCADA_BUTTONMASK_A) {
-      paused = true;
-      strcpy(notice, "Pause");
-      noticeStayLeft = noticeStayTime;
-    }
-    if (pressed & ARCADA_BUTTONMASK_B) {
-      paused = false;
-      strcpy(notice, "Resume");
-      noticeStayLeft = noticeStayTime;
+    if (!EOFed) {
+      if (pressed & ARCADA_BUTTONMASK_A) {
+        paused = true;
+        strcpy(notice, "Pause");
+        noticeStayLeft = noticeStayTime;
+      }
+      if (pressed & ARCADA_BUTTONMASK_B) {
+        paused = false;
+        strcpy(notice, "Resume");
+        noticeStayLeft = noticeStayTime;
+      }
     }
     if (pressed & ARCADA_BUTTONMASK_UP) {
       volume = min(volume + 8, MAX_VOLUME);
-      snprintf(notice, MAX_NOTICE_LEN, "%l%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
+      snprintf(notice, MAX_NOTICE_LEN, "%d%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
       noticeStayLeft = noticeStayTime;
     }
     if (pressed & ARCADA_BUTTONMASK_DOWN) {
       volume = max(volume - 8, 0);
-      snprintf(notice, MAX_NOTICE_LEN, "%l%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
+      snprintf(notice, MAX_NOTICE_LEN, "%d%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
       noticeStayLeft = noticeStayTime;
     }
     if (pressed & ARCADA_BUTTONMASK_LEFT) {
@@ -161,13 +167,15 @@ void RAVPlayFile(char* path) {
       snprintf(notice, MAX_NOTICE_LEN, "-%u seconds", SECS_TO_SEEK);
       noticeStayLeft = noticeStayTime;
     }
-    if (pressed & ARCADA_BUTTONMASK_RIGHT) {
-      RAVCodecSeekFramesCur(FRAMES_TO_SEEK);
-      if (paused) {
-        RAVCodecDecodeFrame();
+    if (!EOFed) {
+      if (pressed & ARCADA_BUTTONMASK_RIGHT) {
+        RAVCodecSeekFramesCur(FRAMES_TO_SEEK);
+        if (paused) {
+          RAVCodecDecodeFrame();
+        }
+        snprintf(notice, MAX_NOTICE_LEN, "+%u seconds", SECS_TO_SEEK);
+        noticeStayLeft = noticeStayTime;
       }
-      snprintf(notice, MAX_NOTICE_LEN, "+%u seconds", SECS_TO_SEEK);
-      noticeStayLeft = noticeStayTime;
     }
     arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
     // Title
@@ -187,7 +195,9 @@ void RAVPlayFile(char* path) {
     // Play/paused
     arcada.display->setCursor(0, ARCADA_TFT_HEIGHT - 8);
     arcada.display->print(" ");
-    if (paused) {
+    if (EOFed) {
+      arcada.display->write(0xFE); // "■"
+    } else if (paused) {
       arcada.display->write(0xBA); // "║"
     } else {
       arcada.display->write(0x10); // "►"
