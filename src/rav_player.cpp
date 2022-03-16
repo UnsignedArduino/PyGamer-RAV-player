@@ -153,12 +153,12 @@ void RAVPlayFile(char* path) {
       }
     if (pressed & ARCADA_BUTTONMASK_UP) {
       volume = min(volume + 8, MAX_VOLUME);
-      snprintf(notice, MAX_NOTICE_LEN, "%d%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
+      snprintf(notice, MAX_NOTICE_LEN, "%ld%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
       noticeStayLeft = noticeStayTime;
     }
     if (pressed & ARCADA_BUTTONMASK_DOWN) {
       volume = max(volume - 8, 0);
-      snprintf(notice, MAX_NOTICE_LEN, "%d%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
+      snprintf(notice, MAX_NOTICE_LEN, "%ld%% volume", map(volume, 0, MAX_VOLUME, 0, 100));
       noticeStayLeft = noticeStayTime;
     }
     if (pressed & ARCADA_BUTTONMASK_LEFT) {
