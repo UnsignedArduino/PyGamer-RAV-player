@@ -103,41 +103,64 @@ void RAVCodecSeekFramesCur(long changeBy) {
   Serial.print(targetFrame);
   Serial.print("/");
   Serial.println(RAVCodecMaxFrame);
-  if (RAVCodecCurrFrame < targetFrame) {
-    while (RAVCodecCurrFrame < targetFrame) {
-      // Current frame number
-      RAVCodecCurrFrame = _RAVCodecReadULong();
-      // Frame length
-      unsigned long frameLen = _RAVCodecReadULong();
-      // Skip:
-      // Audio length
-      // Audio
-      // Video frame length
-      // Video
-      RAVCodecFile.seekCur(frameLen + 8);
-      // Frame length
-      _RAVCodecReadULong();
-      Serial.print("Frame #");
-      Serial.println(RAVCodecCurrFrame);
-    }
+  if (targetFrame == 0) {
+    RAVCodecSeekToFirstFrame();
+    return;
+  } else if (targetFrame >= RAVCodecMaxFrame - VIDEO_FPS) {
+    RAVCodecSeekToLastFrame();
+    return;
   } else {
-    while (RAVCodecCurrFrame > targetFrame) {
-      // Go back 4 bytes to read the current frame's length
-      RAVCodecFile.seekCur(-4);
-      unsigned long frameLen = _RAVCodecReadULong();
-      // Seek negative (backwards)
-      // -4 for the last frame length, frame length itself, 
-      // and -8 to get to the beginning of the frame
-      // Then we can read the frame number and get the last frame
-      RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);
-      // Read current frame
-      RAVCodecCurrFrame = _RAVCodecReadULong();
-      // Seek backwards 4 bytes to offset reading the current frame
-      RAVCodecFile.seekCur(-4);
-      Serial.print("Frame #");
-      Serial.println(RAVCodecCurrFrame);
+    if (RAVCodecCurrFrame < targetFrame) {
+      while (RAVCodecCurrFrame < targetFrame) {
+        // Current frame number
+        RAVCodecCurrFrame = _RAVCodecReadULong();
+        // Frame length
+        unsigned long frameLen = _RAVCodecReadULong();
+        // Skip:
+        // Audio length
+        // Audio
+        // Video frame length
+        // Video
+        RAVCodecFile.seekCur(frameLen + 8);
+        // Frame length
+        _RAVCodecReadULong();
+        Serial.print("Frame #");
+        Serial.println(RAVCodecCurrFrame);
+      }
+    } else {
+      while (RAVCodecCurrFrame > targetFrame) {
+        // Go back 4 bytes to read the current frame's length
+        RAVCodecFile.seekCur(-4);
+        unsigned long frameLen = _RAVCodecReadULong();
+        // Seek negative (backwards)
+        // -4 for the last frame length, frame length itself, 
+        // and -8 to get to the beginning of the frame
+        // Then we can read the frame number and get the last frame
+        RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);
+        // Read current frame
+        RAVCodecCurrFrame = _RAVCodecReadULong();
+        // Seek backwards 4 bytes to offset reading the current frame
+        RAVCodecFile.seekCur(-4);
+        Serial.print("Frame #");
+        Serial.println(RAVCodecCurrFrame);
+      }
     }
   }
+}
+
+void RAVCodecSeekToFirstFrame() {
+  RAVCodecFile.seek(0);
+}
+
+void RAVCodecSeekToLastFrame() {
+  RAVCodecFile.seekEnd();
+  RAVCodecFile.seekCur(-4);
+  unsigned long frameLen = _RAVCodecReadULong();
+  // Seek negative (backwards)
+  // -4 for the last frame length, frame length itself, 
+  // and -8 to get to the beginning of the frame
+  // Then we can read the frame number and get the last frame
+  RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);
 }
 
 void RAVCodecExit() {
