@@ -22,7 +22,7 @@ extern volatile unsigned long sampleIdx;
 const byte SECS_TO_SEEK = 5;
 const unsigned long FRAMES_TO_SEEK = VIDEO_FPS * SECS_TO_SEEK;
 
-const byte PLAYER_MENU_LEN = 2;
+const byte PLAYER_MENU_LEN = 3;
 extern const char* playerMenu[PLAYER_MENU_LEN];
 
 bool RAVinit();
@@ -30,5 +30,6 @@ bool RAVPickFile(char* result, path_size_t resultSize);
 void RAVPlayFile(char* path);
 
 void playNextSample();
+void drawCurrentFrame();
 int JPEGDraw(JPEGDRAW *draw);
 void formatFrameAsTime(unsigned long f, char* result, byte resultSize);

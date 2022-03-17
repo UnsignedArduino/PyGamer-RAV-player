@@ -30,6 +30,12 @@ byte battPercent(Adafruit_Arcada arcada) {
   return lipoPercents[voltCounts - 1];
 }
 
+void waitForPress(Adafruit_Arcada arcada) {
+  while (arcada.readButtons() == 0) {
+    ;
+  }
+}
+
 void waitForRelease(Adafruit_Arcada arcada) {
   while (arcada.readButtons() != 0) {
     ;

@@ -20,7 +20,7 @@ unsigned long volatile sampleIdx = 0;
 byte volume = 32;
 const byte MAX_VOLUME = 128;
 
-const char* playerMenu[PLAYER_MENU_LEN] = {"Cancel", "Exit"};
+const char* playerMenu[PLAYER_MENU_LEN] = {"Cancel", "Seek", "Exit"};
 
 bool RAVinit() {
   Serial.begin(9600);
@@ -124,17 +124,7 @@ void RAVPlayFile(char* path) {
         EOFed = true;
       }
     }
-    // Draw current frame
-    arcada.display->startWrite();
-    if (jpeg.openRAM(RAVCodecJPEGImage, RAVCodecJPEGsize, JPEGDraw)) {
-      if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, 
-                      (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2,
-                      0)) {
-        Serial.println("Failed to decode JPEG");
-      }
-      jpeg.close();
-    }
-    arcada.display->endWrite();
+    drawCurrentFrame();
     // Notice
     if (noticeStayLeft > 0) {
       noticeStayLeft --;
@@ -196,6 +186,52 @@ void RAVPlayFile(char* path) {
     if (pressed & ARCADA_BUTTONMASK_SELECT || pressed & ARCADA_BUTTONMASK_START) {
       byte selected = arcada.menu(playerMenu, PLAYER_MENU_LEN, ARCADA_WHITE, ARCADA_BLACK, true);
       if (selected == 1) {
+        Serial.println("Seek");
+        const unsigned long currFrame = RAVCodecCurrFrame;
+        unsigned long newFrame = currFrame;
+        drawCurrentFrame();
+        while (true) {
+          const unsigned int MAX_MESSAGE_LEN = 64;
+          char message[MAX_MESSAGE_LEN] = {};
+          const byte newFrameTimeLen = 16;
+          char newFrameTime[newFrameTimeLen] = {};
+          formatFrameAsTime(newFrame, newFrameTime, newFrameTimeLen);
+          snprintf(message, MAX_MESSAGE_LEN, 
+                   "New time: %s",
+                   newFrameTime);
+          arcada.infoBox(message, 0);
+          waitForPress(arcada);
+          byte pressed = arcada.readButtons();
+          const unsigned long changeBy = VIDEO_FPS * 10;
+          if (pressed & ARCADA_BUTTONMASK_UP) {
+            newFrame = min((unsigned long)newFrame + changeBy, (unsigned long)RAVCodecMaxFrame);
+          }
+          if (pressed & ARCADA_BUTTONMASK_DOWN) {
+            if (changeBy > newFrame) {
+              newFrame = 0;
+            } else {
+              newFrame -= changeBy;
+            }
+          }
+          if (pressed & ARCADA_BUTTONMASK_A) {
+            long frameDiff = newFrame - currFrame;
+            drawCurrentFrame();
+            arcada.infoBox("Seeking...", 0);
+            Serial.print("Seeking ");
+            Serial.print(frameDiff);
+            Serial.println(" frames");
+            RAVCodecSeekFramesCur(frameDiff);
+            break;
+          }
+          if (pressed & ARCADA_BUTTONMASK_B) {
+            break;
+          }
+          delay(100);
+        }
+        if (paused) {
+          RAVCodecDecodeFrame();
+        }
+      } else if (selected == 2) {
         Serial.println("User exit");
         break;
       }
@@ -271,6 +307,20 @@ void playNextSample() {
   analogWrite(A0, sample);
   analogWrite(A1, sample);
   sampleIdx ++;
+}
+
+void drawCurrentFrame() {
+  // Draw current frame
+  arcada.display->startWrite();
+  if (jpeg.openRAM(RAVCodecJPEGImage, RAVCodecJPEGsize, JPEGDraw)) {
+    if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, 
+                    (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2,
+                    0)) {
+      Serial.println("Failed to decode JPEG");
+    }
+    jpeg.close();
+  }
+  arcada.display->endWrite();
 }
 
 int JPEGDraw(JPEGDRAW *draw) {

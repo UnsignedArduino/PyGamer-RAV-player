@@ -9,4 +9,5 @@
 
 byte battPercent(Adafruit_Arcada arcada);
 
+void waitForPress(Adafruit_Arcada arcada);
 void waitForRelease(Adafruit_Arcada arcada);
