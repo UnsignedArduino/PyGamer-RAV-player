@@ -166,7 +166,7 @@ void RAVPlayFile(char* path) {
       Serial.println(notice);
     }
     if (pressed & ARCADA_BUTTONMASK_LEFT) {
-      RAVCodecSeekFramesCur(-FRAMES_TO_SEEK);
+      RAVCodecSeekFramesCur(-FRAMES_TO_SEEK, false, arcada);
       if (paused) {
         RAVCodecDecodeFrame();
       }
@@ -175,7 +175,7 @@ void RAVPlayFile(char* path) {
       Serial.println(notice);
     }
     if (!EOFed && pressed & ARCADA_BUTTONMASK_RIGHT) {
-      RAVCodecSeekFramesCur(FRAMES_TO_SEEK);
+      RAVCodecSeekFramesCur(FRAMES_TO_SEEK, false, arcada);
       if (paused) {
         RAVCodecDecodeFrame();
       }
@@ -220,7 +220,7 @@ void RAVPlayFile(char* path) {
             Serial.print("Seeking ");
             Serial.print(frameDiff);
             Serial.println(" frames");
-            RAVCodecSeekFramesCur(frameDiff);
+            RAVCodecSeekFramesCur(frameDiff, true, arcada);
             break;
           }
           if (pressed & ARCADA_BUTTONMASK_B) {

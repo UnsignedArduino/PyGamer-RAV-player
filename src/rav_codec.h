@@ -39,7 +39,7 @@ extern unsigned long RAVCodecJPEGsize;
 
 bool RAVCodecEnter(char* path);
 bool RAVCodecDecodeFrame();
-void RAVCodecSeekFramesCur(long changeBy);
+void RAVCodecSeekFramesCur(long changeBy, bool showFramesLeft, Adafruit_Arcada arcada);
 void RAVCodecSeekToFirstFrame();
 void RAVCodecSeekToLastFrame();
 void RAVCodecExit();

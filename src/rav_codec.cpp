@@ -94,11 +94,12 @@ bool RAVCodecDecodeFrame() {
   return true;
 }
 
-void RAVCodecSeekFramesCur(long changeBy) {
+void RAVCodecSeekFramesCur(long changeBy, bool showFramesLeft, Adafruit_Arcada arcada) {
   Serial.print("Seeking ");
   Serial.print(changeBy);
   Serial.println(" frames");
   unsigned long targetFrame = constrain((long)RAVCodecCurrFrame + changeBy, 0, RAVCodecMaxFrame - 1);
+  unsigned long framesLeft = abs((long)targetFrame - (long)RAVCodecCurrFrame);
   Serial.print("Seeking to ");
   Serial.print(targetFrame);
   Serial.print("/");
@@ -126,6 +127,13 @@ void RAVCodecSeekFramesCur(long changeBy) {
         _RAVCodecReadULong();
         Serial.print("Frame #");
         Serial.println(RAVCodecCurrFrame);
+        if (showFramesLeft && framesLeft % 10 == 0) {
+          const byte MESSAGE_LEN = 32;
+          char message[MESSAGE_LEN] = {};
+          snprintf(message, MESSAGE_LEN, "Seeking... (%lu)", framesLeft);
+          arcada.infoBox(message, 0);
+        }
+        framesLeft --;
       }
     } else {
       while (RAVCodecCurrFrame > targetFrame) {
@@ -143,6 +151,13 @@ void RAVCodecSeekFramesCur(long changeBy) {
         RAVCodecFile.seekCur(-4);
         Serial.print("Frame #");
         Serial.println(RAVCodecCurrFrame);
+        if (showFramesLeft && framesLeft % 10 == 0) {
+          const byte MESSAGE_LEN = 32;
+          char message[MESSAGE_LEN] = {};
+          snprintf(message, MESSAGE_LEN, "Seeking... (%lu)", framesLeft);
+          arcada.infoBox(message, 0);
+        }
+        framesLeft --;
       }
     }
   }
