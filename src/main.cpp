@@ -5,8 +5,8 @@
 // (or your respective board) and comment out #define ARCADA_USE_JSON because it breaks compilation
 // Go to .pio\libdeps\adafruit_pygamer_m4\Adafruit GFX Library\Adafruit_SPITFT.h
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
-#include <Adafruit_Arcada.h>
 #include "rav_player.h"
+#include <Adafruit_Arcada.h>
 
 void halt() {
   Serial.println("Halting");

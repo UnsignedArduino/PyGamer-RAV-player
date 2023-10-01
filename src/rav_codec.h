@@ -24,10 +24,12 @@ const unsigned long SAMPLES_PER_FRAME = SAMPLE_RATE / VIDEO_FPS;
 
 const unsigned long MAX_JPEG_SIZE = 32768;
 
+// clang-format off
 union ULongAsBytes {
   byte as_array[sizeof(unsigned long)];
   unsigned long as_ulong;
 };
+// clang-format on
 
 extern char* RAVCodecPath;
 extern File RAVCodecFile;

@@ -5,11 +5,11 @@
 // (or your respective board) and comment out #define ARCADA_USE_JSON because it breaks compilation
 // Go to .pio\libdeps\adafruit_pygamer_m4\Adafruit GFX Library\Adafruit_SPITFT.h
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
-#include <Adafruit_Arcada.h>
-#include <JPEGDEC.h>
 #include "pygamer_arcada.h"
 #include "rav_codec.h"
 #include "rav_player.h"
+#include <Adafruit_Arcada.h>
+#include <JPEGDEC.h>
 
 Adafruit_Arcada arcada;
 JPEGDEC jpeg;
@@ -37,7 +37,7 @@ bool RAVinit() {
   if (!arcada.filesysBegin(ARCADA_FILESYS_SD)) {
     Serial.println("Could not find SD filesystem");
     arcada.display->fillScreen(ARCADA_RED);
-    arcada.haltBox("Could not find SD card! " \
+    arcada.haltBox("Could not find SD card! "
                    "Make sure there is a card plugged in that is formatted with FAT.");
   } else {
     Serial.println("Found SD filesystem");
@@ -127,14 +127,13 @@ void RAVPlayFile(char* path) {
     drawCurrentFrame();
     // Notice
     if (noticeStayLeft > 0) {
-      noticeStayLeft --;
+      noticeStayLeft--;
       int16_t x;
       int16_t y;
       uint16_t w;
       uint16_t h;
       arcada.display->getTextBounds(notice, 0, 0, &x, &y, &w, &h);
-      arcada.display->setCursor((ARCADA_TFT_WIDTH / 2) - (w / 2), 
-                                (ARCADA_TFT_HEIGHT / 2) - (h / 2));
+      arcada.display->setCursor((ARCADA_TFT_WIDTH / 2) - (w / 2), (ARCADA_TFT_HEIGHT / 2) - (h / 2));
       arcada.display->setTextColor(ARCADA_WHITE);
       arcada.display->print(notice);
     }
@@ -196,9 +195,7 @@ void RAVPlayFile(char* path) {
           const byte newFrameTimeLen = 16;
           char newFrameTime[newFrameTimeLen] = {};
           formatFrameAsTime(newFrame, newFrameTime, newFrameTimeLen);
-          snprintf(message, MAX_MESSAGE_LEN, 
-                   "New time: %s",
-                   newFrameTime);
+          snprintf(message, MAX_MESSAGE_LEN, "New time: %s", newFrameTime);
           arcada.infoBox(message, 0);
           waitForPress(arcada);
           byte pressed = arcada.readButtons();
@@ -242,7 +239,7 @@ void RAVPlayFile(char* path) {
       if (titleX > 0) {
         titleX -= titleChangeX;
       } else if (titleStayLeft > 0) {
-        titleStayLeft --;
+        titleStayLeft--;
       } else if (titleX > titleResetX) {
         titleX -= titleChangeX;
       } else {
@@ -278,7 +275,7 @@ void RAVPlayFile(char* path) {
       Serial.print("Battery: ");
       Serial.println(battMaxPercent);
     }
-    battUpdateFramesLeft --;
+    battUpdateFramesLeft--;
     int16_t x;
     int16_t y;
     uint16_t w;
@@ -306,16 +303,14 @@ void playNextSample() {
   byte sample = map(RAVCodecFrameSamples[sampleIdx], 0, 255, 0, volume);
   analogWrite(A0, sample);
   analogWrite(A1, sample);
-  sampleIdx ++;
+  sampleIdx++;
 }
 
 void drawCurrentFrame() {
   // Draw current frame
   arcada.display->startWrite();
   if (jpeg.openRAM(RAVCodecJPEGImage, RAVCodecJPEGsize, JPEGDraw)) {
-    if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, 
-                    (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2,
-                    0)) {
+    if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2, 0)) {
       Serial.println("Failed to decode JPEG");
     }
     jpeg.close();
@@ -323,7 +318,7 @@ void drawCurrentFrame() {
   arcada.display->endWrite();
 }
 
-int JPEGDraw(JPEGDRAW *draw) {
+int JPEGDraw(JPEGDRAW* draw) {
   arcada.display->dmaWait();
   arcada.display->setAddrWindow(draw->x, draw->y, draw->iWidth, draw->iHeight);
   arcada.display->writePixels(draw->pPixels, draw->iWidth * draw->iHeight, true, false);

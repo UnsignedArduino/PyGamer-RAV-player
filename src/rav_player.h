@@ -5,9 +5,9 @@
 // (or your respective board) and comment out #define ARCADA_USE_JSON because it breaks compilation
 // Go to .pio\libdeps\adafruit_pygamer_m4\Adafruit GFX Library\Adafruit_SPITFT.h
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
+#include "rav_codec.h"
 #include <Adafruit_Arcada.h>
 #include <JPEGDEC.h>
-#include "rav_codec.h"
 
 typedef unsigned int path_size_t;
 
@@ -31,5 +31,5 @@ void RAVPlayFile(char* path);
 
 void playNextSample();
 void drawCurrentFrame();
-int JPEGDraw(JPEGDRAW *draw);
+int JPEGDraw(JPEGDRAW* draw);
 void formatFrameAsTime(unsigned long f, char* result, byte resultSize);

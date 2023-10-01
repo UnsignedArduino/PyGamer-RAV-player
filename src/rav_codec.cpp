@@ -5,9 +5,9 @@
 // (or your respective board) and comment out #define ARCADA_USE_JSON because it breaks compilation
 // Go to .pio\libdeps\adafruit_pygamer_m4\Adafruit GFX Library\Adafruit_SPITFT.h
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
-#include <Adafruit_Arcada.h>
-#include "rav_player.h"
 #include "rav_codec.h"
+#include "rav_player.h"
+#include <Adafruit_Arcada.h>
 
 char* RAVCodecPath;
 File RAVCodecFile;
@@ -38,7 +38,7 @@ bool RAVCodecEnter(char* path) {
   Serial.print("Last frame length: ");
   Serial.println(frameLen);
   // Seek negative (backwards)
-  // -4 for the last frame length, frame length itself, 
+  // -4 for the last frame length, frame length itself,
   // and -8 to get to the beginning of the frame
   // Then we can read the frame number and get the last frame
   RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);
@@ -56,41 +56,41 @@ bool RAVCodecDecodeFrame() {
   }
   // Current frame number
   RAVCodecCurrFrame = _RAVCodecReadULong();
-  #if defined(DEBUG_FRAME)
+#if defined(DEBUG_FRAME)
   Serial.print("Frame #");
   Serial.println(RAVCodecCurrFrame);
-  #endif
-  // Frame length
-  #if defined(DEBUG_FRAME)
+#endif
+// Frame length
+#if defined(DEBUG_FRAME)
   Serial.print("Frame len: ");
   Serial.println(_RAVCodecReadULong());
-  #else
+#else
   _RAVCodecReadULong();
-  #endif
-  // Audio length
-  #if defined(DEBUG_FRAME)
+#endif
+// Audio length
+#if defined(DEBUG_FRAME)
   Serial.print("Audio len: ");
   Serial.println(_RAVCodecReadULong());
-  #else
+#else
   _RAVCodecReadULong();
-  #endif
+#endif
   // Audio
   _RAVCodecReadAudio();
   // Video frame length
   RAVCodecJPEGsize = _RAVCodecReadULong();
-  #if defined(DEBUG_FRAME)
+#if defined(DEBUG_FRAME)
   Serial.print("JPEG len: ");
   Serial.println(RAVCodecJPEGsize);
-  #endif
+#endif
   // Video
   _RAVCodecReadVideo(RAVCodecJPEGsize);
-  // Frame length
-  #if defined(DEBUG_FRAME)
+// Frame length
+#if defined(DEBUG_FRAME)
   Serial.print("Frame len ");
   Serial.println(_RAVCodecReadULong());
-  #else
+#else
   _RAVCodecReadULong();
-  #endif
+#endif
   return true;
 }
 
@@ -133,7 +133,7 @@ void RAVCodecSeekFramesCur(long changeBy, bool showFramesLeft, Adafruit_Arcada a
           snprintf(message, MESSAGE_LEN, "Seeking... (%lu)", framesLeft);
           arcada.infoBox(message, 0);
         }
-        framesLeft --;
+        framesLeft--;
       }
     } else {
       while (RAVCodecCurrFrame > targetFrame) {
@@ -141,7 +141,7 @@ void RAVCodecSeekFramesCur(long changeBy, bool showFramesLeft, Adafruit_Arcada a
         RAVCodecFile.seekCur(-4);
         unsigned long frameLen = _RAVCodecReadULong();
         // Seek negative (backwards)
-        // -4 for the last frame length, frame length itself, 
+        // -4 for the last frame length, frame length itself,
         // and -8 to get to the beginning of the frame
         // Then we can read the frame number and get the last frame
         RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);
@@ -157,7 +157,7 @@ void RAVCodecSeekFramesCur(long changeBy, bool showFramesLeft, Adafruit_Arcada a
           snprintf(message, MESSAGE_LEN, "Seeking... (%lu)", framesLeft);
           arcada.infoBox(message, 0);
         }
-        framesLeft --;
+        framesLeft--;
       }
     }
   }
@@ -172,7 +172,7 @@ void RAVCodecSeekToLastFrame() {
   RAVCodecFile.seekCur(-4);
   unsigned long frameLen = _RAVCodecReadULong();
   // Seek negative (backwards)
-  // -4 for the last frame length, frame length itself, 
+  // -4 for the last frame length, frame length itself,
   // and -8 to get to the beginning of the frame
   // Then we can read the frame number and get the last frame
   RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);

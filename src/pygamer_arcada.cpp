@@ -12,17 +12,11 @@ byte battPercent(Adafruit_Arcada arcada) {
   const byte voltCounts = 21;
   // LiPo voltage is not linear
   // https://www.desmos.com/calculator/hrzzbwffct
-  const byte lipoPercents[voltCounts] = {100, 95, 90, 85, 80,
-                                         75, 70, 65, 60, 55,
-                                         50, 45, 40, 35, 30,
-                                         25, 20, 15, 10, 5,
-                                         0};
-  const float lipoVolts[voltCounts] = {4.2, 4.15, 4.11, 4.08, 4.02, 
-                                       3.98, 3.95, 3.91, 3.87, 3.85,
-                                       3.84, 3.82, 3.8, 3.79, 3.77,
-                                       3.75, 3.73, 3.71, 3.69, 3.61, 
-                                       3.27};
-  for (byte i = 0; i < voltCounts; i ++) {
+  const byte lipoPercents[voltCounts] = {100, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50,
+                                         45,  40, 35, 30, 25, 20, 15, 10, 5,  0};
+  const float lipoVolts[voltCounts] = {4.2,  4.15, 4.11, 4.08, 4.02, 3.98, 3.95, 3.91, 3.87, 3.85, 3.84,
+                                       3.82, 3.8,  3.79, 3.77, 3.75, 3.73, 3.71, 3.69, 3.61, 3.27};
+  for (byte i = 0; i < voltCounts; i++) {
     if (voltage > lipoVolts[i]) {
       return lipoPercents[i];
     }
