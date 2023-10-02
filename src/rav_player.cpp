@@ -9,16 +9,14 @@
 #include "rav_codec.h"
 #include "rav_player.h"
 #include <Adafruit_Arcada.h>
-#include <JPEGDEC.h>
 
 Adafruit_Arcada arcada;
-JPEGDEC jpeg;
 
 bool volatile playSamples = false;
-unsigned long volatile sampleIdx = 0;
+uint32_t volatile sampleIdx = 0;
 
-byte volume = 32;
-const byte MAX_VOLUME = 128;
+uint8_t volume = 32;
+const uint8_t MAX_VOLUME = 128;
 
 const char* playerMenu[PLAYER_MENU_LEN] = {"Cancel", "Seek", "Exit"};
 
@@ -86,25 +84,25 @@ void RAVPlayFile(char* path) {
   uint16_t h;
   arcada.display->getTextBounds(title, 0, 0, &x, &y, &w, &h);
 
-  const byte titleChangeX = 2;
-  long titleX = 0;
-  long titleResetX = 0 - w;
-  const unsigned long titleStayTime = 30;
-  unsigned long titleStayLeft = titleStayTime;
+  const uint8_t titleChangeX = 2;
+  int32_t titleX = 0;
+  int32_t titleResetX = 0 - w;
+  const uint32_t titleStayTime = 30;
+  uint32_t titleStayLeft = titleStayTime;
   const bool scrollTitle = w > ARCADA_TFT_WIDTH;
 
-  byte battMaxPercentLen = 8;
+  uint8_t battMaxPercentLen = 8;
   char battMaxPercent[battMaxPercentLen] = {};
   snprintf(battMaxPercent, battMaxPercentLen, "%u%%", battPercent(arcada));
-  const unsigned long battUpdateFramesTime = 50;
-  unsigned long battUpdateFramesLeft = battUpdateFramesTime;
+  const uint32_t battUpdateFramesTime = 50;
+  uint32_t battUpdateFramesLeft = battUpdateFramesTime;
   Serial.print("Battery: ");
   Serial.println(battMaxPercent);
 
-  byte MAX_NOTICE_LEN = 16;
+  uint8_t MAX_NOTICE_LEN = 16;
   char notice[MAX_NOTICE_LEN + 1] = {};
-  const unsigned long noticeStayTime = 30;
-  unsigned long noticeStayLeft = 0;
+  const uint32_t noticeStayTime = 30;
+  uint32_t noticeStayLeft = 0;
 
   arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
   arcada.display->setTextSize(1);
@@ -115,7 +113,7 @@ void RAVPlayFile(char* path) {
   arcada.enableSpeaker(true);
 
   while (true) {
-    unsigned long start_time = millis();
+    uint32_t start_time = millis();
     if (!paused) {
       if (RAVCodecDecodeFrame()) {
         sampleIdx = 0;
@@ -137,7 +135,7 @@ void RAVPlayFile(char* path) {
       arcada.display->setTextColor(ARCADA_WHITE);
       arcada.display->print(notice);
     }
-    byte pressed = arcada.readButtons();
+    uint8_t pressed = arcada.readButtons();
     if (!EOFed) {
       if (!paused && pressed & ARCADA_BUTTONMASK_A) {
         paused = true;
@@ -183,25 +181,25 @@ void RAVPlayFile(char* path) {
       Serial.println(notice);
     }
     if (pressed & ARCADA_BUTTONMASK_SELECT || pressed & ARCADA_BUTTONMASK_START) {
-      byte selected = arcada.menu(playerMenu, PLAYER_MENU_LEN, ARCADA_WHITE, ARCADA_BLACK, true);
+      uint8_t selected = arcada.menu(playerMenu, PLAYER_MENU_LEN, ARCADA_WHITE, ARCADA_BLACK, true);
       if (selected == 1) {
         Serial.println("Seek");
-        const unsigned long currFrame = RAVCodecCurrFrame;
-        unsigned long newFrame = currFrame;
+        const uint32_t currFrame = RAVCodecCurrFrame;
+        uint32_t newFrame = currFrame;
         drawCurrentFrame();
         while (true) {
           const unsigned int MAX_MESSAGE_LEN = 64;
           char message[MAX_MESSAGE_LEN] = {};
-          const byte newFrameTimeLen = 16;
+          const uint8_t newFrameTimeLen = 16;
           char newFrameTime[newFrameTimeLen] = {};
           formatFrameAsTime(newFrame, newFrameTime, newFrameTimeLen);
           snprintf(message, MAX_MESSAGE_LEN, "New time: %s", newFrameTime);
           arcada.infoBox(message, 0);
           waitForPress(arcada);
-          byte pressed = arcada.readButtons();
-          const unsigned long changeBy = VIDEO_FPS * 10;
+          uint8_t pressed = arcada.readButtons();
+          const uint32_t changeBy = VIDEO_FPS * 10;
           if (pressed & ARCADA_BUTTONMASK_UP) {
-            newFrame = min((unsigned long)newFrame + changeBy, (unsigned long)RAVCodecMaxFrame);
+            newFrame = min((uint32_t)newFrame + changeBy, (uint32_t)RAVCodecMaxFrame);
           }
           if (pressed & ARCADA_BUTTONMASK_DOWN) {
             if (changeBy > newFrame) {
@@ -211,7 +209,7 @@ void RAVPlayFile(char* path) {
             }
           }
           if (pressed & ARCADA_BUTTONMASK_A) {
-            long frameDiff = newFrame - currFrame;
+            int32_t frameDiff = newFrame - currFrame;
             drawCurrentFrame();
             arcada.infoBox("Seeking...", 0);
             Serial.print("Seeking ");
@@ -262,7 +260,7 @@ void RAVPlayFile(char* path) {
     }
     arcada.display->print(" ");
     // Time
-    const byte timeBufSize = 12;
+    const uint8_t timeBufSize = 12;
     char timeBuf[timeBufSize] = {};
     formatFrameAsTime(RAVCodecCurrFrame, timeBuf, timeBufSize);
     arcada.display->print(timeBuf);
@@ -300,33 +298,20 @@ void playNextSample() {
     analogWrite(A1, 0);
     return;
   }
-  byte sample = map(RAVCodecFrameSamples[sampleIdx], 0, 255, 0, volume);
+  uint8_t sample = map(RAVCodecFrameSamples[sampleIdx], 0, 255, 0, volume);
   analogWrite(A0, sample);
   analogWrite(A1, sample);
   sampleIdx++;
 }
 
 void drawCurrentFrame() {
-  // Draw current frame
-  arcada.display->startWrite();
-  if (jpeg.openRAM(RAVCodecJPEGImage, RAVCodecJPEGsize, JPEGDraw)) {
-    if (!jpeg.decode((ARCADA_TFT_WIDTH - jpeg.getWidth()) / 2, (ARCADA_TFT_HEIGHT - jpeg.getHeight()) / 2, 0)) {
-      Serial.println("Failed to decode JPEG");
-    }
-    jpeg.close();
-  }
-  arcada.display->endWrite();
+  const int16_t x = (ARCADA_TFT_WIDTH - RAVCodecFrameWidth) / 2;
+  const int16_t y = (ARCADA_TFT_HEIGHT - RAVCodecFrameHeight) / 2;
+  arcada.display->drawRGBBitmap(x, y, RAVCodecImage, RAVCodecFrameWidth, RAVCodecFrameHeight);
 }
 
-int JPEGDraw(JPEGDRAW* draw) {
-  arcada.display->dmaWait();
-  arcada.display->setAddrWindow(draw->x, draw->y, draw->iWidth, draw->iHeight);
-  arcada.display->writePixels(draw->pPixels, draw->iWidth * draw->iHeight, true, false);
-  return 1;
-}
-
-void formatFrameAsTime(unsigned long f, char* result, byte resultSize) {
-  unsigned long secs = f / VIDEO_FPS;
+void formatFrameAsTime(uint32_t f, char* result, uint8_t resultSize) {
+  uint32_t secs = f / VIDEO_FPS;
   unsigned int h = secs / 3600;
   secs = secs % 3600;
   unsigned int m = secs / 60;

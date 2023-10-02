@@ -7,22 +7,20 @@
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include "rav_codec.h"
 #include <Adafruit_Arcada.h>
-#include <JPEGDEC.h>
 
-typedef unsigned int path_size_t;
+typedef uint16_t path_size_t;
 
 const path_size_t MAX_PATH_LEN = 255;
 
 extern Adafruit_Arcada arcada;
-extern JPEGDEC jpeg;
 
 extern volatile bool playSamples;
-extern volatile unsigned long sampleIdx;
+extern volatile uint32_t sampleIdx;
 
-const byte SECS_TO_SEEK = 5;
-const unsigned long FRAMES_TO_SEEK = VIDEO_FPS * SECS_TO_SEEK;
+const uint8_t SECS_TO_SEEK = 5;
+const uint32_t FRAMES_TO_SEEK = VIDEO_FPS * SECS_TO_SEEK;
 
-const byte PLAYER_MENU_LEN = 3;
+const uint8_t PLAYER_MENU_LEN = 3;
 extern const char* playerMenu[PLAYER_MENU_LEN];
 
 bool RAVinit();
@@ -31,5 +29,4 @@ void RAVPlayFile(char* path);
 
 void playNextSample();
 void drawCurrentFrame();
-int JPEGDraw(JPEGDRAW* draw);
-void formatFrameAsTime(unsigned long f, char* result, byte resultSize);
+void formatFrameAsTime(uint32_t f, char* result, uint8_t resultSize);

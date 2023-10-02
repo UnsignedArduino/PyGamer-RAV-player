@@ -11,33 +11,42 @@
 
 // #define DEBUG_FRAME
 
-typedef byte sample_t;
+typedef uint8_t sample_t;
 
-const unsigned long SAMPLE_RATE = 16000;
-const byte SAMPLE_SIZE = 1;
-const byte CHANNEL_COUNT = 1;
+const uint32_t SAMPLE_RATE = 16000;
+const uint8_t SAMPLE_SIZE = 1;
+const uint8_t CHANNEL_COUNT = 1;
 
-const byte VIDEO_FPS = 10;
-const unsigned long FRAME_LENGTH = 1000 / VIDEO_FPS;
+const uint8_t VIDEO_FPS = 10;
+const uint32_t FRAME_LENGTH = 1000 / VIDEO_FPS;
 
-const unsigned long SAMPLES_PER_FRAME = SAMPLE_RATE / VIDEO_FPS;
-
-const unsigned long MAX_JPEG_SIZE = 32768;
+const uint32_t SAMPLES_PER_FRAME = SAMPLE_RATE / VIDEO_FPS;
 
 // clang-format off
 union ULongAsBytes {
-  byte as_array[sizeof(unsigned long)];
-  unsigned long as_ulong;
+  uint8_t as_array[sizeof(uint32_t)];
+  uint32_t as_ulong;
+};
+
+union UIntAsBytes {
+  uint8_t as_array[sizeof(uint16_t)];
+  uint16_t as_uint;
 };
 // clang-format on
 
 extern char* RAVCodecPath;
 extern File RAVCodecFile;
-extern unsigned long RAVCodecCurrFrame;
-extern unsigned long RAVCodecMaxFrame;
+extern uint32_t RAVCodecCurrFrame;
 extern sample_t RAVCodecFrameSamples[SAMPLES_PER_FRAME];
-extern byte RAVCodecJPEGImage[MAX_JPEG_SIZE];
-extern unsigned long RAVCodecJPEGsize;
+extern uint16_t* RAVCodecImage;
+extern uint32_t RAVCodecImageSize;
+
+extern uint32_t RAVCodecMaxFrame;
+extern uint8_t RAVCodecSampleSize;
+extern uint32_t RAVCodecSampleRate;
+extern uint8_t RAVCodecFPS;
+extern uint16_t RAVCodecFrameWidth;
+extern uint16_t RAVCodecFrameHeight;
 
 bool RAVCodecEnter(char* path);
 bool RAVCodecDecodeFrame();
@@ -47,7 +56,8 @@ void RAVCodecSeekToLastFrame();
 void RAVCodecExit();
 
 void _RAVCodecReadAudio();
-void _RAVCodecReadVideo(unsigned long JPEGlen);
+void _RAVCodecReadVideo(uint32_t vidLen);
 
-unsigned long _RAVCodecReadULong();
+uint32_t _RAVCodecReadULong();
+uint16_t _RAVCodecReadUInt();
 bool _RAVCodecAtEOF();

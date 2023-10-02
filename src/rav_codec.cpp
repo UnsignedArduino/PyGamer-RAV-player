@@ -11,19 +11,25 @@
 
 char* RAVCodecPath;
 File RAVCodecFile;
-unsigned long RAVCodecCurrFrame;
-unsigned long RAVCodecMaxFrame;
+uint32_t RAVCodecCurrFrame;
 sample_t RAVCodecFrameSamples[SAMPLES_PER_FRAME];
-byte RAVCodecJPEGImage[MAX_JPEG_SIZE];
-unsigned long RAVCodecJPEGsize;
+uint16_t* RAVCodecImage;
+uint32_t RAVCodecImageSize;
+
+uint32_t RAVCodecMaxFrame;
+uint8_t RAVCodecSampleSize;
+uint32_t RAVCodecSampleRate;
+uint8_t RAVCodecFPS;
+uint16_t RAVCodecFrameWidth;
+uint16_t RAVCodecFrameHeight;
 
 bool RAVCodecEnter(char* path) {
   RAVCodecPath = path;
   RAVCodecCurrFrame = 0;
   RAVCodecMaxFrame = 0;
   memset(RAVCodecFrameSamples, 0, SAMPLES_PER_FRAME * sizeof(sample_t));
-  RAVCodecJPEGsize = 0;
-  memset(RAVCodecJPEGImage, 0, MAX_JPEG_SIZE * sizeof(byte));
+  RAVCodecImage = NULL;
+  RAVCodecImageSize = 0;
   Serial.print("Opening file ");
   Serial.println(RAVCodecFile);
   RAVCodecFile = arcada.open(RAVCodecPath);
@@ -32,20 +38,21 @@ bool RAVCodecEnter(char* path) {
     Serial.println("Failed to open file");
     return false;
   }
-  RAVCodecFile.seekEnd();
-  RAVCodecFile.seekCur(-4);
-  unsigned long frameLen = _RAVCodecReadULong();
-  Serial.print("Last frame length: ");
-  Serial.println(frameLen);
-  // Seek negative (backwards)
-  // -4 for the last frame length, frame length itself,
-  // and -8 to get to the beginning of the frame
-  // Then we can read the frame number and get the last frame
-  RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);
   RAVCodecMaxFrame = _RAVCodecReadULong();
-  RAVCodecFile.seek(0);
-  Serial.print("Last frame: ");
-  Serial.println(RAVCodecMaxFrame);
+  RAVCodecSampleSize = RAVCodecFile.read();
+  RAVCodecSampleRate = _RAVCodecReadULong();
+  RAVCodecFPS = RAVCodecFile.read();
+  RAVCodecFrameWidth = _RAVCodecReadUInt();
+  RAVCodecFrameHeight = _RAVCodecReadUInt();
+  Serial.printf("Frame count: %d\nSample size: (bits) %d\nSample rate: %d\n", RAVCodecMaxFrame, RAVCodecSampleSize,
+                RAVCodecSampleRate);
+  Serial.printf("FPS: %d\nWidth: %d\nHeight: %d\n", RAVCodecFPS, RAVCodecFrameWidth, RAVCodecFrameHeight);
+  RAVCodecImageSize = RAVCodecFrameWidth * RAVCodecFrameHeight * sizeof(uint16_t);
+  RAVCodecImage = (uint16_t*)malloc(RAVCodecImageSize);
+  if (RAVCodecImage == NULL) {
+    Serial.println("Failed to allocate frame buffer!");
+    return false;
+  }
   Serial.println("Success init codec");
   return true;
 }
@@ -77,13 +84,13 @@ bool RAVCodecDecodeFrame() {
   // Audio
   _RAVCodecReadAudio();
   // Video frame length
-  RAVCodecJPEGsize = _RAVCodecReadULong();
+  const uint32_t vidSize = _RAVCodecReadULong();
 #if defined(DEBUG_FRAME)
-  Serial.print("JPEG len: ");
-  Serial.println(RAVCodecJPEGsize);
+  Serial.print("Video len: ");
+  Serial.println(vidSize);
 #endif
   // Video
-  _RAVCodecReadVideo(RAVCodecJPEGsize);
+  _RAVCodecReadVideo(vidSize);
 // Frame length
 #if defined(DEBUG_FRAME)
   Serial.print("Frame len ");
@@ -98,8 +105,8 @@ void RAVCodecSeekFramesCur(long changeBy, bool showFramesLeft, Adafruit_Arcada a
   Serial.print("Seeking ");
   Serial.print(changeBy);
   Serial.println(" frames");
-  unsigned long targetFrame = constrain((long)RAVCodecCurrFrame + changeBy, 0, RAVCodecMaxFrame - 1);
-  unsigned long framesLeft = abs((long)targetFrame - (long)RAVCodecCurrFrame);
+  uint32_t targetFrame = constrain((long)RAVCodecCurrFrame + changeBy, 0, RAVCodecMaxFrame - 1);
+  uint32_t framesLeft = abs((long)targetFrame - (long)RAVCodecCurrFrame);
   Serial.print("Seeking to ");
   Serial.print(targetFrame);
   Serial.print("/");
@@ -116,7 +123,7 @@ void RAVCodecSeekFramesCur(long changeBy, bool showFramesLeft, Adafruit_Arcada a
         // Current frame number
         RAVCodecCurrFrame = _RAVCodecReadULong();
         // Frame length
-        unsigned long frameLen = _RAVCodecReadULong();
+        uint32_t frameLen = _RAVCodecReadULong();
         // Skip:
         // Audio length
         // Audio
@@ -128,7 +135,7 @@ void RAVCodecSeekFramesCur(long changeBy, bool showFramesLeft, Adafruit_Arcada a
         Serial.print("Frame #");
         Serial.println(RAVCodecCurrFrame);
         if (showFramesLeft && framesLeft % 10 == 0) {
-          const byte MESSAGE_LEN = 32;
+          const uint8_t MESSAGE_LEN = 32;
           char message[MESSAGE_LEN] = {};
           snprintf(message, MESSAGE_LEN, "Seeking... (%lu)", framesLeft);
           arcada.infoBox(message, 0);
@@ -137,22 +144,22 @@ void RAVCodecSeekFramesCur(long changeBy, bool showFramesLeft, Adafruit_Arcada a
       }
     } else {
       while (RAVCodecCurrFrame > targetFrame) {
-        // Go back 4 bytes to read the current frame's length
+        // Go back 4 uint8_ts to read the current frame's length
         RAVCodecFile.seekCur(-4);
-        unsigned long frameLen = _RAVCodecReadULong();
+        uint32_t frameLen = _RAVCodecReadULong();
         // Seek negative (backwards)
         // -4 for the last frame length, frame length itself,
         // and -8 to get to the beginning of the frame
         // Then we can read the frame number and get the last frame
-        RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);
+        RAVCodecFile.seekCur((int32_t)(4 + frameLen + 8 + 8) * (int32_t)-1);
         // Read current frame
         RAVCodecCurrFrame = _RAVCodecReadULong();
-        // Seek backwards 4 bytes to offset reading the current frame
+        // Seek backwards 4 uint8_ts to offset reading the current frame
         RAVCodecFile.seekCur(-4);
         Serial.print("Frame #");
         Serial.println(RAVCodecCurrFrame);
         if (showFramesLeft && framesLeft % 10 == 0) {
-          const byte MESSAGE_LEN = 32;
+          const uint8_t MESSAGE_LEN = 32;
           char message[MESSAGE_LEN] = {};
           snprintf(message, MESSAGE_LEN, "Seeking... (%lu)", framesLeft);
           arcada.infoBox(message, 0);
@@ -170,39 +177,37 @@ void RAVCodecSeekToFirstFrame() {
 void RAVCodecSeekToLastFrame() {
   RAVCodecFile.seekEnd();
   RAVCodecFile.seekCur(-4);
-  unsigned long frameLen = _RAVCodecReadULong();
+  uint32_t frameLen = _RAVCodecReadULong();
   // Seek negative (backwards)
   // -4 for the last frame length, frame length itself,
   // and -8 to get to the beginning of the frame
   // Then we can read the frame number and get the last frame
-  RAVCodecFile.seekCur((long)(4 + frameLen + 8 + 8) * (long)-1);
+  RAVCodecFile.seekCur((int32_t)(4 + frameLen + 8 + 8) * (int32_t)-1);
 }
 
 void RAVCodecExit() {
   RAVCodecFile.close();
+  free(RAVCodecImage);
 }
 
 void _RAVCodecReadAudio() {
   RAVCodecFile.read(RAVCodecFrameSamples, SAMPLES_PER_FRAME);
 }
 
-void _RAVCodecReadVideo(unsigned long JPEGlen) {
-  memset(RAVCodecJPEGImage, 0, MAX_JPEG_SIZE * sizeof(byte));
-  if (JPEGlen > MAX_JPEG_SIZE) {
-    Serial.print("JPEG size ");
-    Serial.print(JPEGlen);
-    Serial.println(" too big!");
-    return;
-  }
-  // // For now we don't decode audio
-  // RAVCodecFile.seekCur(JPEGlen);
-  RAVCodecFile.read(RAVCodecJPEGImage, JPEGlen);
+void _RAVCodecReadVideo(uint32_t vidLen) {
+  RAVCodecFile.read(RAVCodecImage, vidLen);
 }
 
-unsigned long _RAVCodecReadULong() {
+uint32_t _RAVCodecReadULong() {
   ULongAsBytes ulb;
-  RAVCodecFile.read(ulb.as_array, sizeof(unsigned long));
+  RAVCodecFile.read(ulb.as_array, sizeof(uint32_t));
   return ulb.as_ulong;
+}
+
+uint16_t _RAVCodecReadUInt() {
+  UIntAsBytes uib;
+  RAVCodecFile.read(uib.as_array, sizeof(uint16_t));
+  return uib.as_uint;
 }
 
 bool _RAVCodecAtEOF() {

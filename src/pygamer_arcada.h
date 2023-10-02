@@ -7,7 +7,7 @@
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include <Adafruit_Arcada.h>
 
-byte battPercent(Adafruit_Arcada arcada);
+uint8_t battPercent(Adafruit_Arcada arcada);
 
 void waitForPress(Adafruit_Arcada arcada);
 void waitForRelease(Adafruit_Arcada arcada);
