@@ -12,7 +12,7 @@
 // #define DEBUG_READ_CURRENT_FRAME
 
 namespace RAVCodec {
-  const uint32_t SAMPLE_RATE = 16000;
+  const uint32_t SAMPLE_RATE = 32000;
   const uint8_t SAMPLE_SIZE = 1;
   const uint8_t CHANNEL_COUNT = 1;
 
