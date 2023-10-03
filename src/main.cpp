@@ -88,6 +88,7 @@ void loop() {
   waitForRelease();
   if (codec.open(path)) {
     Serial.println("Decoder successfully opened!");
+    codec.readCurrentFrame();
   } else {
     Serial.println("Decoder failed to open!");
   }

@@ -25,6 +25,7 @@ bool RAVCodec::RAVCodec::open(char* path) {
   if (!this->allocateBuffers()) {
     return false;
   }
+  this->setCurrentFrame(0);
   return true;
 }
 
@@ -37,6 +38,54 @@ bool RAVCodec::RAVCodec::close() {
   this->file.close();
   delete this->header;
   return this->deallocateBuffers();
+}
+
+RAVCodec::sample_t* RAVCodec::RAVCodec::getCurrentFrameAudio(uint32_t& sampleLen) {
+  sampleLen = this->frameAudioSamplesLen;
+  return this->frameAudioSamples;
+}
+
+uint16_t* RAVCodec::RAVCodec::getCurrentFrameVideo(uint32_t& bitmapLen) {
+  bitmapLen = this->frameImageBlockLen;
+  return this->frameImageBlock;
+}
+
+uint32_t RAVCodec::RAVCodec::getCurrentFrame() {
+  return this->currFrame;
+}
+
+void RAVCodec::RAVCodec::setCurrentFrame(uint32_t f) {
+  f = min(f, this->header->maxFrame - 1);
+  if (f == this->currFrame) {
+    return;
+  }
+  this->currFrame = f;
+  const uint32_t frameSize =
+      4 + 4 + 4 + this->frameAudioSamplesLen * sizeof(sample_t) + 4 + this->frameImageBlockLen * sizeof(uint16_t) + 4;
+  this->file.seek(14 + frameSize);
+}
+
+RAVCodec::RAVHeader* RAVCodec::RAVCodec::getHeader() {
+  return this->header;
+}
+
+void RAVCodec::RAVCodec::readCurrentFrame() {
+  const uint32_t frameNumber = this->readUInt32();
+  const uint32_t frameLen = this->readUInt32();
+  const uint32_t audioLen = this->readUInt32();
+  this->file.read(this->frameAudioSamples, this->frameAudioSamplesLen);
+  const uint32_t imageLen = this->readUInt32();
+  this->file.read(this->frameImageBlock, this->frameImageBlockLen);
+  const uint32_t frameLenAgain = this->readUInt32();
+  this->currFrame++;
+#ifdef DEBUG_READ_CURRENT_FRAME
+  Serial.printf("Frame number: %d\nFrame length: %d\nAudio length: %d\nImage length: %d\n", frameNumber, frameLen,
+                audioLen, imageLen);
+  Serial.printf("Current frame: %d\n", this->currFrame);
+  if (frameLenAgain != frameLen) {
+    Serial.println("Frame length at end of frame does not equal frame length at beginning!");
+  }
+#endif
 }
 
 bool RAVCodec::RAVCodec::readHeader() {
@@ -63,7 +112,7 @@ bool RAVCodec::RAVCodec::readHeader() {
 
 bool RAVCodec::RAVCodec::allocateBuffers() {
   Serial.println("Allocating buffers");
-  this->frameAudioSamplesLen = SAMPLE_RATE;
+  this->frameAudioSamplesLen = SAMPLE_RATE / VIDEO_FPS;
   this->frameAudioSamples = (sample_t*)malloc(this->frameAudioSamplesLen * sizeof(sample_t));
   if (!this->frameAudioSamples) {
     Serial.printf("Failed to allocate %d bytes for audio!\n", this->frameAudioSamplesLen);
