@@ -6,10 +6,15 @@
 // Go to .pio\libdeps\adafruit_pygamer_m4\Adafruit GFX Library\Adafruit_SPITFT.h
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include <Adafruit_Arcada.h>
+#include <CircularBuffer.h>
 #include <RAVCodec.h>
 
 Adafruit_Arcada arcada;
 RAVCodec::RAVCodec codec(&arcada);
+
+CircularBuffer<RAVCodec::sample_t, RAVCodec::SAMPLES_PER_FRAME> sampleBuf;
+uint8_t volume = 128;
+const uint8_t MAX_VOLUME = 255;
 
 const uint8_t MAX_PATH_SIZE = 255;
 
@@ -50,20 +55,42 @@ void waitForRelease() {
   }
 }
 
+void playNextSample() {
+  if (sampleBuf.isEmpty()) {
+    analogWrite(A0, 0);
+    analogWrite(A1, 0);
+    return;
+  }
+  uint8_t sample = map(sampleBuf.shift(), 0, MAX_VOLUME, 0, volume);
+  analogWrite(A0, sample);
+  analogWrite(A1, sample);
+}
+
 void playRAV(char* path) {
   Serial.printf("Playing RAV file %s\n", path);
   if (codec.open(path)) {
     Serial.println("Decoder successfully opened!");
+
+    const RAVCodec::RAVHeader* header = codec.getHeader();
+
+    arcada.timerCallback(header->sampleRate, playNextSample);
+    arcada.enableSpeaker(true);
+
     while (true) {
       const uint32_t startRender = millis();
 
-      const RAVCodec::RAVHeader* header = codec.getHeader();
       if (codec.getCurrentFrame() == header->maxFrame - 1) {
         Serial.println("Reached end of RAV, exiting!");
         break;
       }
 
       codec.readCurrentFrame();
+
+      uint32_t audioFrameLen;
+      RAVCodec::sample_t* audioFrame = codec.getCurrentFrameAudio(audioFrameLen);
+      for (uint32_t i = 0; i < RAVCodec::SAMPLES_PER_FRAME; i++) {
+        sampleBuf.push(audioFrame[i]);
+      }
 
       const int16_t x = (ARCADA_TFT_WIDTH - header->frameWidth) / 2;
       const int16_t y = (ARCADA_TFT_HEIGHT - header->frameHeight) / 2;
@@ -78,6 +105,9 @@ void playRAV(char* path) {
         delay(1);
       }
     }
+
+    arcada.timerStop();
+    arcada.enableSpeaker(false);
   } else {
     Serial.println("Decoder failed to open!");
   }
