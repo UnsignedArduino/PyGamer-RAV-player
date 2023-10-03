@@ -9,7 +9,7 @@
 // and comment out #define USE_SPI_DMA because it does not work when compiled with PlatformIO
 #include <Adafruit_Arcada.h>
 
-#define DEBUG_READ_CURRENT_FRAME
+// #define DEBUG_READ_CURRENT_FRAME
 
 namespace RAVCodec {
   const uint32_t SAMPLE_RATE = 16000;

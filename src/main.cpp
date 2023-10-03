@@ -9,7 +9,6 @@
 #include <RAVCodec.h>
 
 Adafruit_Arcada arcada;
-
 RAVCodec::RAVCodec codec(&arcada);
 
 const uint8_t MAX_PATH_SIZE = 255;
@@ -51,6 +50,40 @@ void waitForRelease() {
   }
 }
 
+void playRAV(char* path) {
+  Serial.printf("Playing RAV file %s\n", path);
+  if (codec.open(path)) {
+    Serial.println("Decoder successfully opened!");
+    while (true) {
+      const uint32_t startRender = millis();
+
+      const RAVCodec::RAVHeader* header = codec.getHeader();
+      if (codec.getCurrentFrame() == header->maxFrame - 1) {
+        Serial.println("Reached end of RAV, exiting!");
+        break;
+      }
+
+      codec.readCurrentFrame();
+
+      const int16_t x = (ARCADA_TFT_WIDTH - header->frameWidth) / 2;
+      const int16_t y = (ARCADA_TFT_HEIGHT - header->frameHeight) / 2;
+      uint32_t videoFrameLen;
+      uint16_t* videoFrame = codec.getCurrentFrameVideo(videoFrameLen);
+      arcada.display->startWrite();
+      arcada.display->setAddrWindow(x, y, header->frameWidth, header->frameHeight);
+      arcada.display->writePixels(videoFrame, header->frameWidth * header->frameHeight, true, false);
+      arcada.display->endWrite();
+
+      while ((millis() - startRender) < (1000 / header->fps)) {
+        delay(1);
+      }
+    }
+  } else {
+    Serial.println("Decoder failed to open!");
+  }
+  codec.close();
+}
+
 void setup() {
   Serial.begin(9600);
   Serial.println("RAV player");
@@ -86,11 +119,5 @@ void loop() {
   }
   Serial.printf("Choose %s\n", path);
   waitForRelease();
-  if (codec.open(path)) {
-    Serial.println("Decoder successfully opened!");
-    codec.readCurrentFrame();
-  } else {
-    Serial.println("Decoder failed to open!");
-  }
-  codec.close();
+  playRAV(path);
 }
