@@ -76,6 +76,8 @@ void playRAV(char* path) {
     arcada.timerCallback(header->sampleRate, playNextSample);
     arcada.enableSpeaker(true);
 
+    const uint32_t frameTime = 1000 / header->fps;
+
     while (true) {
       const uint32_t startRender = millis();
 
@@ -101,7 +103,7 @@ void playRAV(char* path) {
       arcada.display->writePixels(videoFrame, header->frameWidth * header->frameHeight, true, false);
       arcada.display->endWrite();
 
-      while ((millis() - startRender) < (1000 / header->fps)) {
+      while ((millis() - startRender) < frameTime) {
         delay(1);
       }
     }
