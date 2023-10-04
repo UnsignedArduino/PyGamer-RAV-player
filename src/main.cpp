@@ -18,6 +18,11 @@ const uint8_t MAX_VOLUME = 255;
 
 const uint8_t MAX_PATH_SIZE = 255;
 
+enum class PlayingSymbol { Playing, Paused, Stopped };
+
+const uint8_t playerMenuCount = 2;
+const char* playerMenu[playerMenuCount] = {"Cancel", "Exit"};
+
 void halt() {
   Serial.println("Halting");
   digitalWrite(LED_BUILTIN, HIGH);
@@ -79,8 +84,6 @@ void playNextSample() {
   analogWrite(A1, sample);
 }
 
-enum class PlayingSymbol { Playing, Paused, Stopped };
-
 void playRAV(char* path) {
   Serial.printf("Playing RAV file %s\n", path);
   if (codec.open(path)) {
@@ -116,6 +119,9 @@ void playRAV(char* path) {
 
       if ((!paused && !eof) || rerenderFrame) {
         codec.readCurrentFrame();
+        if (paused && rerenderFrame) {
+          codec.setCurrentFrame(codec.getCurrentFrame() - 1);
+        }
         if (!paused && !eof) {
           uint32_t audioFrameLen;
           RAVCodec::sample_t* audioFrame = codec.getCurrentFrameAudio(audioFrameLen);
@@ -231,6 +237,19 @@ void playRAV(char* path) {
           volume -= changeVolumeBy;
         }
         Serial.printf("Volume decrease to %d\n", volume);
+      }
+      if (justPressed & ARCADA_BUTTONMASK_SELECT || justPressed & ARCADA_BUTTONMASK_START) {
+        Serial.println("Enter menu");
+        waitForRelease();
+        uint8_t selected = arcada.menu(playerMenu, playerMenuCount, ARCADA_WHITE, ARCADA_BLACK, true);
+        waitForRelease();
+        if (selected == 0 || selected == 255) {
+          Serial.println("Canceled menu action");
+        } else if (selected == 1) {
+          Serial.println("Exiting player");
+          break;
+        }
+        rerenderFrame = true;
       }
 
       while ((millis() - startRender) < frameTime) {
