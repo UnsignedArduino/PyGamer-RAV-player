@@ -79,6 +79,8 @@ void playNextSample() {
   analogWrite(A1, sample);
 }
 
+enum class PlayingSymbol { Playing, Paused, Stopped };
+
 void playRAV(char* path) {
   Serial.printf("Playing RAV file %s\n", path);
   if (codec.open(path)) {
@@ -97,19 +99,24 @@ void playRAV(char* path) {
     bool paused = false;
     bool eof = false;
     bool rerenderFrame = false;
+    PlayingSymbol playingSymbol = PlayingSymbol::Playing;
+    PlayingSymbol lastPlayingSymbol = PlayingSymbol::Stopped;
 
     while (true) {
       const uint32_t startRender = millis();
 
-      if (codec.getCurrentFrame() == header->maxFrame - 1) {
-        paused = false;
-        eof = true;
+      eof = codec.getCurrentFrame() == header->maxFrame - 1;
+      if (eof) {
+        playingSymbol = PlayingSymbol::Stopped;
+      } else if (paused) {
+        playingSymbol = PlayingSymbol::Paused;
+      } else {
+        playingSymbol = PlayingSymbol::Playing;
       }
 
-      if (!paused || rerenderFrame) {
+      if ((!paused && !eof) || rerenderFrame) {
         codec.readCurrentFrame();
-
-        if (!paused) {
+        if (!paused && !eof) {
           uint32_t audioFrameLen;
           RAVCodec::sample_t* audioFrame = codec.getCurrentFrameAudio(audioFrameLen);
           for (uint32_t i = 0; i < RAVCodec::SAMPLES_PER_FRAME; i++) {
@@ -129,7 +136,31 @@ void playRAV(char* path) {
         rerenderFrame = false;
       }
 
-      arcada.display->setCursor(0, ARCADA_TFT_HEIGHT - 8);
+      if (playingSymbol != lastPlayingSymbol) {
+        lastPlayingSymbol = playingSymbol;
+        arcada.display->fillRect(2, ARCADA_TFT_HEIGHT - 9, 9, 9, ARCADA_BLACK);
+        switch (playingSymbol) {
+          case (PlayingSymbol::Playing): {
+            // clang-format off
+            arcada.display->fillTriangle(3, ARCADA_TFT_HEIGHT - 9, 
+                                         8, ARCADA_TFT_HEIGHT - 6, 
+                                         3, ARCADA_TFT_HEIGHT - 3,
+                                         ARCADA_WHITE);
+            // clang-format on
+            break;
+          }
+          case (PlayingSymbol::Paused): {
+            arcada.display->fillRect(3, ARCADA_TFT_HEIGHT - 9, 2, 7, ARCADA_WHITE);
+            arcada.display->fillRect(8, ARCADA_TFT_HEIGHT - 9, 2, 7, ARCADA_WHITE);
+            break;
+          }
+          case (PlayingSymbol::Stopped): {
+            arcada.display->fillRect(3, ARCADA_TFT_HEIGHT - 9, 7, 7, ARCADA_WHITE);
+            break;
+          }
+        }
+      }
+      arcada.display->setCursor(13, ARCADA_TFT_HEIGHT - 9);
       arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
       char display[24];
       formatFrameAsTime(codec.getCurrentFrame(), display, 24);
@@ -150,7 +181,6 @@ void playRAV(char* path) {
         Serial.println("Resume");
         if (eof) {
           Serial.println("Seek to beginning");
-          eof = false;
           codec.setCurrentFrame(0);
         }
         paused = false;
@@ -160,17 +190,28 @@ void playRAV(char* path) {
         if (codec.getCurrentFrame() < seekFramesBy) {
           codec.setCurrentFrame(0);
         } else {
-          codec.setCurrentFrame(codec.getCurrentFrame() - seekFramesBy);
+          codec.setCurrentFrame(codec.getCurrentFrame() - (seekFramesBy + 1));
         }
-        Serial.printf("Seek backwards by %d frames to frame %d\n", seekFramesBy, codec.getCurrentFrame());
+        Serial.printf("Seek backwards by %d frames to frame %d\n", seekFramesBy + 1, codec.getCurrentFrame());
         rerenderFrame = true;
       }
       if (justPressed & ARCADA_BUTTONMASK_RIGHT) {
-        // Handles min against max frame
-        codec.setCurrentFrame(codec.getCurrentFrame() + seekFramesBy);
-        Serial.printf("Seek forward by %d frames to frame %d\n", seekFramesBy, codec.getCurrentFrame());
+        if (codec.getCurrentFrame() > header->maxFrame - seekFramesBy - 1) {
+          codec.setCurrentFrame(header->maxFrame - 2);
+        } else {
+          codec.setCurrentFrame(codec.getCurrentFrame() + seekFramesBy - 1);
+        }
+        Serial.printf("Seek forward by %d frames to frame %d\n", seekFramesBy - 1, codec.getCurrentFrame());
         rerenderFrame = true;
       }
+      // if (justPressed & ARCADA_BUTTONMASK_SELECT) {
+      //   codec.setCurrentFrame(0);
+      //   rerenderFrame = true;
+      // }
+      // if (justPressed & ARCADA_BUTTONMASK_START) {
+      //   codec.setCurrentFrame(header->maxFrame - 2);
+      //   rerenderFrame = true;
+      // }
       if (justPressed & ARCADA_BUTTONMASK_UP) {
         if (volume == MAX_VOLUME) {
           ;

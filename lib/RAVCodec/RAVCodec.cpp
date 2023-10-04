@@ -55,7 +55,6 @@ uint32_t RAVCodec::RAVCodec::getCurrentFrame() {
 }
 
 void RAVCodec::RAVCodec::setCurrentFrame(uint32_t f) {
-  f = min(f, this->header->maxFrame - 1);
   if (f == this->currFrame) {
     return;
   }
@@ -70,6 +69,9 @@ RAVCodec::RAVHeader* RAVCodec::RAVCodec::getHeader() {
 }
 
 void RAVCodec::RAVCodec::readCurrentFrame() {
+  if (this->currFrame == this->header->maxFrame) {
+    return;
+  }
   const uint32_t frameNumber = this->readUInt32();
   const uint32_t frameLen = this->readUInt32();
   const uint32_t audioLen = this->readUInt32();
