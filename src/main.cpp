@@ -78,30 +78,97 @@ void playRAV(char* path) {
 
     const uint32_t frameTime = 1000 / header->fps;
 
+    const uint32_t seekFramesBy = header->fps * 5;
+    const uint8_t changeVolumeBy = 16;
+
+    bool paused = false;
+    bool eof = false;
+    bool rerenderFrame = false;
+
     while (true) {
       const uint32_t startRender = millis();
 
       if (codec.getCurrentFrame() == header->maxFrame - 1) {
-        Serial.println("Reached end of RAV, exiting!");
-        break;
+        paused = false;
+        eof = true;
       }
 
-      codec.readCurrentFrame();
+      if (!paused || rerenderFrame) {
+        codec.readCurrentFrame();
 
-      uint32_t audioFrameLen;
-      RAVCodec::sample_t* audioFrame = codec.getCurrentFrameAudio(audioFrameLen);
-      for (uint32_t i = 0; i < RAVCodec::SAMPLES_PER_FRAME; i++) {
-        sampleBuf.push(audioFrame[i]);
+        if (!paused) {
+          uint32_t audioFrameLen;
+          RAVCodec::sample_t* audioFrame = codec.getCurrentFrameAudio(audioFrameLen);
+          for (uint32_t i = 0; i < RAVCodec::SAMPLES_PER_FRAME; i++) {
+            sampleBuf.push(audioFrame[i]);
+          }
+        }
+
+        const int16_t x = (ARCADA_TFT_WIDTH - header->frameWidth) / 2;
+        const int16_t y = (ARCADA_TFT_HEIGHT - header->frameHeight) / 2;
+        uint32_t videoFrameLen;
+        uint16_t* videoFrame = codec.getCurrentFrameVideo(videoFrameLen);
+        arcada.display->startWrite();
+        arcada.display->setAddrWindow(x, y, header->frameWidth, header->frameHeight);
+        arcada.display->writePixels(videoFrame, header->frameWidth * header->frameHeight, true, false);
+        arcada.display->endWrite();
+
+        rerenderFrame = false;
       }
 
-      const int16_t x = (ARCADA_TFT_WIDTH - header->frameWidth) / 2;
-      const int16_t y = (ARCADA_TFT_HEIGHT - header->frameHeight) / 2;
-      uint32_t videoFrameLen;
-      uint16_t* videoFrame = codec.getCurrentFrameVideo(videoFrameLen);
-      arcada.display->startWrite();
-      arcada.display->setAddrWindow(x, y, header->frameWidth, header->frameHeight);
-      arcada.display->writePixels(videoFrame, header->frameWidth * header->frameHeight, true, false);
-      arcada.display->endWrite();
+      arcada.readButtons();
+      uint8_t justPressed = arcada.justPressedButtons();
+      if (justPressed & ARCADA_BUTTONMASK_A) {
+        if (!eof) {
+          Serial.println("Pause");
+          paused = true;
+        }
+      }
+      if (justPressed & ARCADA_BUTTONMASK_B) {
+        Serial.println("Resume");
+        if (eof) {
+          Serial.println("Seek to beginning");
+          eof = false;
+          codec.setCurrentFrame(0);
+        }
+        paused = false;
+      }
+      if (justPressed & ARCADA_BUTTONMASK_LEFT) {
+        // uint32_t makes it slightly annoying as we can't max against 0
+        if (codec.getCurrentFrame() < seekFramesBy) {
+          codec.setCurrentFrame(0);
+        } else {
+          codec.setCurrentFrame(codec.getCurrentFrame() - seekFramesBy);
+        }
+        Serial.printf("Seek backwards by %d frames to frame %d\n", seekFramesBy, codec.getCurrentFrame());
+        rerenderFrame = true;
+      }
+      if (justPressed & ARCADA_BUTTONMASK_RIGHT) {
+        // Handles min against max frame
+        codec.setCurrentFrame(codec.getCurrentFrame() + seekFramesBy);
+        Serial.printf("Seek forward by %d frames to frame %d\n", seekFramesBy, codec.getCurrentFrame());
+        rerenderFrame = true;
+      }
+      if (justPressed & ARCADA_BUTTONMASK_UP) {
+        if (volume == MAX_VOLUME) {
+          ;
+        } else if (volume == MAX_VOLUME - changeVolumeBy + 1) {
+          volume += changeVolumeBy - 1;
+        } else {
+          volume += changeVolumeBy;
+        }
+        Serial.printf("Volume increase to %d\n", volume);
+      }
+      if (justPressed & ARCADA_BUTTONMASK_DOWN) {
+        if (volume == 0) {
+          ;
+        } else if (volume == MAX_VOLUME) {
+          volume -= changeVolumeBy - 1;
+        } else {
+          volume -= changeVolumeBy;
+        }
+        Serial.printf("Volume decrease to %d\n", volume);
+      }
 
       while ((millis() - startRender) < frameTime) {
         delay(1);

@@ -60,9 +60,9 @@ void RAVCodec::RAVCodec::setCurrentFrame(uint32_t f) {
     return;
   }
   this->currFrame = f;
-  const uint32_t frameSize =
-      4 + 4 + 4 + this->frameAudioSamplesLen * sizeof(sample_t) + 4 + this->frameImageBlockLen * sizeof(uint16_t) + 4;
-  this->file.seek(14 + frameSize);
+  const uint32_t frameSize = 4 + 4 + 4 + this->frameAudioSamplesLen + 4 + this->frameImageBlockLen + 4;
+  // Serial.printf("Seeking to %d at pos %d\n", f, 14 + frameSize * f);
+  this->file.seek(14 + frameSize * f);
 }
 
 RAVCodec::RAVHeader* RAVCodec::RAVCodec::getHeader() {
@@ -81,7 +81,7 @@ void RAVCodec::RAVCodec::readCurrentFrame() {
 #ifdef DEBUG_READ_CURRENT_FRAME
   Serial.printf("Frame number: %d\nFrame length: %d\nAudio length: %d\nImage length: %d\n", frameNumber, frameLen,
                 audioLen, imageLen);
-  Serial.printf("Current frame: %d\n", this->currFrame);
+  Serial.printf("Current frame: %d\nFile position: %d\n", this->currFrame, this->file.position());
   if (frameLenAgain != frameLen) {
     Serial.println("Frame length at end of frame does not equal frame length at beginning!");
   }
