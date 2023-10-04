@@ -55,6 +55,19 @@ void waitForRelease() {
   }
 }
 
+void formatFrameAsTime(uint32_t f, char* result, uint8_t resultSize) {
+  uint32_t secs = f / RAVCodec::VIDEO_FPS;
+  uint16_t h = secs / 3600;
+  secs = secs % 3600;
+  uint16_t m = secs / 60;
+  uint16_t s = secs % 60;
+  if (h == 0) {
+    snprintf(result, resultSize, "%02d:%02d", m, s);
+  } else {
+    snprintf(result, resultSize, "%d:%02d:%02d", h, m, s);
+  }
+}
+
 void playNextSample() {
   if (sampleBuf.isEmpty()) {
     analogWrite(A0, 0);
@@ -115,6 +128,15 @@ void playRAV(char* path) {
 
         rerenderFrame = false;
       }
+
+      arcada.display->setCursor(0, ARCADA_TFT_HEIGHT - 8);
+      arcada.display->setTextColor(ARCADA_WHITE, ARCADA_BLACK);
+      char display[24];
+      formatFrameAsTime(codec.getCurrentFrame(), display, 24);
+      arcada.display->print(display);
+      arcada.display->print("/");
+      formatFrameAsTime(header->maxFrame, display, 24);
+      arcada.display->print(display);
 
       arcada.readButtons();
       uint8_t justPressed = arcada.justPressedButtons();
